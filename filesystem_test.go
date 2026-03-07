@@ -1,11 +1,11 @@
-package tests
+package finder_test
 
 import (
 	"os"
 	"path/filepath"
 	"testing"
 
-	finder "github.com/SREsAreHumanToo/go-finder/src/finder"
+	finder "github.com/SREsAreHumanToo/go-finder"
 )
 
 func TestReadDir(t *testing.T) {

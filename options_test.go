@@ -1,4 +1,4 @@
-package tests
+package finder_test
 
 import (
 	"strings"
@@ -6,7 +6,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	finder "github.com/SREsAreHumanToo/go-finder/src/finder"
+	finder "github.com/SREsAreHumanToo/go-finder"
 )
 
 func TestDefaultOptions(t *testing.T) {

@@ -5,7 +5,7 @@ A cross-platform, terminal-based file and folder picker for Go. Works consistent
 ## Features
 
 - **Four picker modes**: single file, single folder, any (file or folder), and multi-select
-- **Live search filtering**: press `/` to filter entries in real time — non-matching items are hidden
+- **Live search filtering**: press `/` to filter entries in real time
 - **Interactive mode**: create files/folders and delete entries without leaving the picker
 - **Glob-based file filtering** (`*.go`, `*.txt`, etc.)
 - **Hidden file support**: toggle at runtime, or force-show with distinct dim styling
@@ -20,7 +20,7 @@ A cross-platform, terminal-based file and folder picker for Go. Works consistent
 ## Install
 
 ```bash
-go get github.com/SREsAreHumanToo/go-finder/src/finder
+go get github.com/SREsAreHumanToo/go-finder
 ```
 
 ## Quick Start
@@ -30,11 +30,10 @@ package main
 
 import (
     "fmt"
-    finder "github.com/SREsAreHumanToo/go-finder/src/finder"
+    finder "github.com/SREsAreHumanToo/go-finder"
 )
 
 func main() {
-    // Pick a single file
     path, err := finder.PickFile(
         finder.WithStartDir("~/projects"),
         finder.WithFilter("*.go"),
@@ -144,32 +143,34 @@ path, err := finder.PickFile(
 
 Typing a name ending with `/` when creating a file (e.g. `mydir/`) creates a directory instead.
 
-## Demo
+## Examples
 
 ```bash
-# File picker
-go run ./demo
+# File picker (all flags)
+go run ./examples/basic
 
 # Folder picker
-go run ./demo -mode folder
+go run ./examples/folder
 
-# Any (file or folder)
-go run ./demo -mode any
-
-# Multi-select with filter
-go run ./demo -mode multi -filter "*.go"
-
-# Show hidden files (forced, toggle disabled)
-go run ./demo -hidden
+# Multi-select with filters
+go run ./examples/multi
 
 # Interactive mode (create/delete)
-go run ./demo -interactive
+go run ./examples/interactive
 
-# Start in a specific directory
-go run ./demo -dir /tmp
+# Custom keybindings and styles
+go run ./examples/custom
+```
 
-# Resolve symlinks
-go run ./demo -expand -dir ~/symlink
+The basic example supports flags for all options:
+
+```bash
+go run ./examples/basic -mode folder
+go run ./examples/basic -mode multi -filter "*.go"
+go run ./examples/basic -hidden
+go run ./examples/basic -interactive
+go run ./examples/basic -dir /tmp
+go run ./examples/basic -expand -dir ~/symlink
 ```
 
 ## Documentation
@@ -184,4 +185,4 @@ go run ./demo -expand -dir ~/symlink
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+MIT - see [LICENSE](LICENSE) for details.

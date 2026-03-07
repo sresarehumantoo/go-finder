@@ -1,5 +1,11 @@
 # API Reference
 
+## Import
+
+```go
+import finder "github.com/SREsAreHumanToo/go-finder"
+```
+
 ## Public Functions
 
 ### `PickFile(opts ...Option) (string, error)`
@@ -99,7 +105,7 @@ type KeyMap struct {
 }
 ```
 
-Example — rebind cancel to `x`:
+Example - rebind cancel to `x`:
 
 ```go
 km := finder.DefaultKeyMap()
@@ -124,7 +130,7 @@ type Styles struct {
 
 ### Errors
 
-- `ErrCancelled` — Returned when the user exits the picker without making a selection.
+- `ErrCancelled` - returned when the user exits the picker without making a selection.
 
 ## Utility Functions
 

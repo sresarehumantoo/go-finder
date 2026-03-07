@@ -1,4 +1,4 @@
-package tests
+package finder_test
 
 import (
 	"os"
@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
-	finder "github.com/SREsAreHumanToo/go-finder/src/finder"
+	finder "github.com/SREsAreHumanToo/go-finder"
 )
 
 func TestNewModel(t *testing.T) {

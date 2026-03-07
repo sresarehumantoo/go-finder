@@ -1,16 +1,16 @@
-// demo/main.go demonstrates the go-finder file picker library.
+// Basic example demonstrates all go-finder picker modes with flag-based configuration.
 //
 // Usage:
 //
-//	go run ./demo                          # Pick a single file
-//	go run ./demo -mode folder             # Pick a folder
-//	go run ./demo -mode any                # Pick a file or folder
-//	go run ./demo -mode multi              # Multi-select files
-//	go run ./demo -dir /tmp                # Start in /tmp
-//	go run ./demo -filter "*.go"           # Only show .go files
-//	go run ./demo -hidden                  # Show hidden files
-//	go run ./demo -interactive             # Enable create/delete actions
-//	go run ./demo -expand -dir ~/symlink  # Resolve symlinks to real paths
+//	go run ./examples/basic                          # Pick a single file
+//	go run ./examples/basic -mode folder             # Pick a folder
+//	go run ./examples/basic -mode any                # Pick a file or folder
+//	go run ./examples/basic -mode multi              # Multi-select files
+//	go run ./examples/basic -dir /tmp                # Start in /tmp
+//	go run ./examples/basic -filter "*.go"           # Only show .go files
+//	go run ./examples/basic -hidden                  # Show hidden files
+//	go run ./examples/basic -interactive             # Enable create/delete actions
+//	go run ./examples/basic -expand -dir ~/symlink   # Resolve symlinks to real paths
 package main
 
 import (
@@ -19,7 +19,7 @@ import (
 	"os"
 	"strings"
 
-	finder "github.com/SREsAreHumanToo/go-finder/src/finder"
+	finder "github.com/SREsAreHumanToo/go-finder"
 )
 
 func main() {
