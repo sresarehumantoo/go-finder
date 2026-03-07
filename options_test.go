@@ -1,12 +1,12 @@
-package tests
+package finder_test
 
 import (
 	"strings"
 	"testing"
 
+	finder "github.com/SREsAreHumanToo/go-finder"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	finder "github.com/SREsAreHumanToo/go-finder/src/finder"
 )
 
 func TestDefaultOptions(t *testing.T) {
@@ -80,6 +80,44 @@ func TestWithMode(t *testing.T) {
 
 	if opts.Mode != finder.ModeFolder {
 		t.Errorf("expected ModeFolder, got %d", opts.Mode)
+	}
+}
+
+func TestWithInteractive(t *testing.T) {
+	opts := finder.DefaultOptions()
+	finder.WithInteractive(true)(&opts)
+
+	if !opts.Interactive {
+		t.Error("expected Interactive to be true")
+	}
+}
+
+func TestWithExpandSymlinks(t *testing.T) {
+	opts := finder.DefaultOptions()
+	finder.WithExpandSymlinks(true)(&opts)
+
+	if !opts.ExpandSymlinks {
+		t.Error("expected ExpandSymlinks to be true")
+	}
+}
+
+func TestWithKeyMapOption(t *testing.T) {
+	km := finder.DefaultKeyMap()
+	opts := finder.DefaultOptions()
+	finder.WithKeyMap(km)(&opts)
+
+	if opts.KeyMap == nil {
+		t.Error("expected KeyMap to be set")
+	}
+}
+
+func TestWithStylesOption(t *testing.T) {
+	s := finder.DefaultStyles()
+	opts := finder.DefaultOptions()
+	finder.WithStyles(s)(&opts)
+
+	if opts.Styles == nil {
+		t.Error("expected Styles to be set")
 	}
 }
 

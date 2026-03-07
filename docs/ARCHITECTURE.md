@@ -21,38 +21,35 @@ A TUI picker works identically everywhere a terminal exists.
 
 The picker follows the Elm architecture via Bubble Tea:
 
-1. **Model** (`model.go`) — Holds all state: current directory, file list, cursor position, selections, search term, input mode
-2. **Update** (`model.go`) — Receives a `tea.Msg` (keyboard input, directory-read result), processes it, returns new state and optional command
-3. **View** (`view.go`) — Pure function that takes model state and renders it to a string for display
+1. **Model** (`model.go`) - Holds all state: current directory, file list, cursor position, selections, search term, input mode
+2. **Update** (`model.go`) - Receives a `tea.Msg` (keyboard input, directory-read result), processes it, returns new state and optional command
+3. **View** (`view.go`) - Pure function that takes model state and renders it to a string for display
 
 The cycle is: user input produces a `tea.Msg`, `Update` returns new state, `View` renders the new state.
 
 ### File Layout
 
 ```
-src/finder/
-  finder.go       Public API (PickFile, PickFolder, PickAny, PickMultiple)
-  options.go      Configuration types and functional options
-  model.go        Bubble Tea model, Init, Update logic
-  view.go         Rendering / View function
-  keys.go         Keybinding definitions (fully overridable)
-  styles.go       Lipgloss style definitions (fully overridable)
-  filesystem.go   OS-agnostic file operations, path utilities
+finder.go         Public API (PickFile, PickFolder, PickAny, PickMultiple)
+options.go        Configuration types and functional options
+model.go          Bubble Tea model, Init, Update logic
+view.go           Rendering / View function
+keys.go           Keybinding definitions (fully overridable)
+styles.go         Lipgloss style definitions (fully overridable)
+filesystem.go     OS-agnostic file operations, path utilities
 
-tests/
-  filesystem_test.go   ReadDir, ParentDir, path conversion, FormatSize
-  model_test.go        Navigation, selection, cursor memory, truncation, multi-select
-  options_test.go      Option functions, custom keymaps
-  interactive_test.go  Create file/folder, delete, cancel, trailing slash
-  search_test.go       Live filtering, esc restore, enter accept, case insensitivity
-  symlink_test.go      Symlink expansion, back navigation, ResolvePath
+*_test.go         Tests (one per concern area, package finder_test)
 
-demo/
-  main.go              CLI demo with all flags
+examples/
+  basic/          Full-featured demo with all flags
+  folder/         Simple folder picker
+  multi/          Multi-select with filters
+  interactive/    Create/delete file management
+  custom/         Custom keybindings and styles
 
 docs/
-  API.md               Full API reference
-  ARCHITECTURE.md      This file
+  API.md          Full API reference
+  ARCHITECTURE.md This file
 ```
 
 ### Separation of Concerns
@@ -97,11 +94,11 @@ func (m Model) readDir() tea.Cmd {
 | Action | ModeFile | ModeFolder | ModeAny | ModeMultiple |
 |---|---|---|---|---|
 | `enter` on dir | Navigate into | Select dir | Navigate into | Navigate into |
-| `enter` on file | Select file | — | Select file | Confirm selections |
+| `enter` on file | Select file | - | Select file | Confirm selections |
 | `right`/`l` on dir | Navigate into | Navigate into | Navigate into | Navigate into |
-| `tab`/`space` | — | — | Select item | Toggle selection |
-| `ctrl+a` | — | — | — | Toggle all |
-| `s` | — | Select current dir | Select current dir | — |
+| `tab`/`space` | - | - | Select item | Toggle selection |
+| `ctrl+a` | - | - | - | Toggle all |
+| `s` | - | Select current dir | Select current dir | - |
 
 ### Display Features
 

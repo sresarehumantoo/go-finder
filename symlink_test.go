@@ -1,4 +1,4 @@
-package tests
+package finder_test
 
 import (
 	"os"
@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	finder "github.com/SREsAreHumanToo/go-finder"
 	tea "github.com/charmbracelet/bubbletea"
-	finder "github.com/SREsAreHumanToo/go-finder/src/finder"
 )
 
 func TestExpandSymlinksStartDir(t *testing.T) {

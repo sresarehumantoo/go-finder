@@ -4,10 +4,13 @@
 BIN_DIR := bin
 APP     := go-finder
 
-# Build the demo binary for the current platform
+# Build all examples for the current platform
 build:
 	@mkdir -p $(BIN_DIR)
-	go build -o $(BIN_DIR)/$(APP) ./demo
+	@for dir in examples/*/; do \
+		name=$$(basename $$dir); \
+		go build -o $(BIN_DIR)/$$name ./$$dir; \
+	done
 
 # Cross-compile for all supported platforms
 build-all: build-linux build-darwin build-windows build-freebsd
@@ -17,50 +20,50 @@ build-all: build-linux build-darwin build-windows build-freebsd
 build-linux: build-linux-amd64 build-linux-arm64
 build-linux-amd64:
 	@mkdir -p $(BIN_DIR)
-	GOOS=linux GOARCH=amd64 go build -o $(BIN_DIR)/$(APP)-linux-amd64 ./demo
+	GOOS=linux GOARCH=amd64 go build -o $(BIN_DIR)/$(APP)-linux-amd64 ./examples/basic
 build-linux-arm64:
 	@mkdir -p $(BIN_DIR)
-	GOOS=linux GOARCH=arm64 go build -o $(BIN_DIR)/$(APP)-linux-arm64 ./demo
+	GOOS=linux GOARCH=arm64 go build -o $(BIN_DIR)/$(APP)-linux-arm64 ./examples/basic
 
 # macOS
 build-darwin: build-darwin-amd64 build-darwin-arm64
 build-darwin-amd64:
 	@mkdir -p $(BIN_DIR)
-	GOOS=darwin GOARCH=amd64 go build -o $(BIN_DIR)/$(APP)-darwin-amd64 ./demo
+	GOOS=darwin GOARCH=amd64 go build -o $(BIN_DIR)/$(APP)-darwin-amd64 ./examples/basic
 build-darwin-arm64:
 	@mkdir -p $(BIN_DIR)
-	GOOS=darwin GOARCH=arm64 go build -o $(BIN_DIR)/$(APP)-darwin-arm64 ./demo
+	GOOS=darwin GOARCH=arm64 go build -o $(BIN_DIR)/$(APP)-darwin-arm64 ./examples/basic
 
 # Windows
 build-windows: build-windows-amd64 build-windows-arm64
 build-windows-amd64:
 	@mkdir -p $(BIN_DIR)
-	GOOS=windows GOARCH=amd64 go build -o $(BIN_DIR)/$(APP)-windows-amd64.exe ./demo
+	GOOS=windows GOARCH=amd64 go build -o $(BIN_DIR)/$(APP)-windows-amd64.exe ./examples/basic
 build-windows-arm64:
 	@mkdir -p $(BIN_DIR)
-	GOOS=windows GOARCH=arm64 go build -o $(BIN_DIR)/$(APP)-windows-arm64.exe ./demo
+	GOOS=windows GOARCH=arm64 go build -o $(BIN_DIR)/$(APP)-windows-arm64.exe ./examples/basic
 
 # FreeBSD
 build-freebsd: build-freebsd-amd64 build-freebsd-arm64
 build-freebsd-amd64:
 	@mkdir -p $(BIN_DIR)
-	GOOS=freebsd GOARCH=amd64 go build -o $(BIN_DIR)/$(APP)-freebsd-amd64 ./demo
+	GOOS=freebsd GOARCH=amd64 go build -o $(BIN_DIR)/$(APP)-freebsd-amd64 ./examples/basic
 build-freebsd-arm64:
 	@mkdir -p $(BIN_DIR)
-	GOOS=freebsd GOARCH=arm64 go build -o $(BIN_DIR)/$(APP)-freebsd-arm64 ./demo
+	GOOS=freebsd GOARCH=arm64 go build -o $(BIN_DIR)/$(APP)-freebsd-arm64 ./examples/basic
 
 # Run all tests
 test:
-	go test ./tests/ -v -count=1
+	go test -v -count=1 ./...
 
 # Run tests with coverage
 cover:
 	@mkdir -p $(BIN_DIR)
-	go test ./tests/ -coverprofile=$(BIN_DIR)/coverage.out -count=1
+	go test -coverprofile=$(BIN_DIR)/coverage.out -count=1 ./...
 	go tool cover -html=$(BIN_DIR)/coverage.out -o $(BIN_DIR)/coverage.html
 	@echo "Coverage report: $(BIN_DIR)/coverage.html"
 
-# Run the demo
+# Run the basic example
 run: build
 	./$(BIN_DIR)/$(APP)
 

@@ -1,4 +1,4 @@
-package tests
+package finder_test
 
 import (
 	"os"
@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	finder "github.com/SREsAreHumanToo/go-finder"
 	tea "github.com/charmbracelet/bubbletea"
-	finder "github.com/SREsAreHumanToo/go-finder/src/finder"
 )
 
 func setupSearchModel(t *testing.T, dir string) finder.Model {
@@ -173,6 +173,30 @@ func TestSearchCaseInsensitive(t *testing.T) {
 	}
 	if strings.Contains(view, "other.go") {
 		t.Error("expected other.go to be hidden")
+	}
+}
+
+func TestSearchEmptyTermShowsAll(t *testing.T) {
+	dir := t.TempDir()
+	createFile(t, dir, "alpha.go", "")
+	createFile(t, dir, "beta.go", "")
+
+	m := setupSearchModel(t, dir)
+
+	// Start search.
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	m = updated.(finder.Model)
+
+	// Type a character then backspace to empty.
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'x'}})
+	m = updated.(finder.Model)
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyBackspace})
+	m = updated.(finder.Model)
+
+	// All entries should be visible with empty search term.
+	view := m.View()
+	if !strings.Contains(view, "alpha.go") || !strings.Contains(view, "beta.go") {
+		t.Error("expected all entries visible with empty search term")
 	}
 }
 
