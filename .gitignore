@@ -1,0 +1,46 @@
+# Build output
+bin/
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Dependency directories
+vendor/
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Environment / secrets
+.env
+.env.*
+*.pem
+*.key
+
+# AI agent / Claude files
+.claude/
+CLAUDE.md
+.cursorrules
+.aider*
+.codex/
+.continue/
+.codeium/
+copilot-*
+
+# Coverage
+coverage.out
+coverage.html
+
+# Debug
+__debug_bin*
