@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
 	finder "github.com/SREsAreHumanToo/go-finder"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func TestNewModel(t *testing.T) {
@@ -778,6 +778,280 @@ func TestHiddenNotForcedAllowsToggle(t *testing.T) {
 	view = m.View()
 	if !strings.Contains(view, ".hidden") {
 		t.Error(".hidden should be visible after toggling hidden on")
+	}
+}
+
+func TestPageUpDown(t *testing.T) {
+	dir := t.TempDir()
+	for i := 0; i < 50; i++ {
+		createFile(t, dir, "file"+string(rune('a'+i/26))+string(rune('a'+i%26))+".txt", "")
+	}
+
+	opts := finder.DefaultOptions()
+	opts.Mode = finder.ModeFile
+	opts.StartDir = dir
+	m := finder.NewModel(opts)
+
+	// Force small height so pagination kicks in.
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 15})
+	m = updated.(finder.Model)
+
+	cmd := m.Init()
+	msg := cmd()
+	updated, _ = m.Update(msg)
+	m = updated.(finder.Model)
+
+	// Page down.
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyPgDown})
+	m = updated.(finder.Model)
+
+	view := m.View()
+	if !strings.Contains(view, "/") {
+		t.Error("expected view content after page down")
+	}
+
+	// Page up.
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyPgUp})
+	m = updated.(finder.Model)
+
+	view = m.View()
+	if !strings.Contains(view, "/") {
+		t.Error("expected view content after page up")
+	}
+}
+
+func TestPageDownEmptyDir(t *testing.T) {
+	dir := t.TempDir()
+
+	opts := finder.DefaultOptions()
+	opts.Mode = finder.ModeFile
+	opts.StartDir = dir
+	m := finder.NewModel(opts)
+
+	cmd := m.Init()
+	msg := cmd()
+	updated, _ := m.Update(msg)
+	m = updated.(finder.Model)
+
+	// Page down on empty dir should not panic.
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyPgDown})
+	m = updated.(finder.Model)
+
+	view := m.View()
+	if !strings.Contains(view, "empty") {
+		t.Error("expected empty directory message")
+	}
+}
+
+func TestHomeEndKeys(t *testing.T) {
+	dir := t.TempDir()
+	createFile(t, dir, "aaa.txt", "")
+	createFile(t, dir, "zzz.txt", "")
+
+	opts := finder.DefaultOptions()
+	opts.Mode = finder.ModeFile
+	opts.StartDir = dir
+	m := finder.NewModel(opts)
+
+	cmd := m.Init()
+	msg := cmd()
+	updated, _ := m.Update(msg)
+	m = updated.(finder.Model)
+
+	// End key.
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnd})
+	m = updated.(finder.Model)
+
+	// Home key.
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyHome})
+	m = updated.(finder.Model)
+
+	// Should not panic and view should be valid.
+	view := m.View()
+	if view == "" {
+		t.Error("expected non-empty view after home/end")
+	}
+}
+
+func TestNavigateOnFile(t *testing.T) {
+	dir := t.TempDir()
+	createFile(t, dir, "only.txt", "")
+
+	opts := finder.DefaultOptions()
+	opts.Mode = finder.ModeFile
+	opts.StartDir = dir
+	m := finder.NewModel(opts)
+
+	cmd := m.Init()
+	msg := cmd()
+	updated, _ := m.Update(msg)
+	m = updated.(finder.Model)
+
+	// Right arrow on a file should do nothing.
+	updated, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRight})
+	m = updated.(finder.Model)
+
+	if cmd != nil {
+		t.Error("right arrow on a file should not trigger a command")
+	}
+}
+
+func TestNavigateEmptyDir(t *testing.T) {
+	dir := t.TempDir()
+
+	opts := finder.DefaultOptions()
+	opts.Mode = finder.ModeFile
+	opts.StartDir = dir
+	m := finder.NewModel(opts)
+
+	cmd := m.Init()
+	msg := cmd()
+	updated, _ := m.Update(msg)
+	m = updated.(finder.Model)
+
+	// Right arrow on empty dir should do nothing.
+	updated, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRight})
+	m = updated.(finder.Model)
+
+	if cmd != nil {
+		t.Error("right arrow on empty dir should not trigger a command")
+	}
+}
+
+func TestSelectDirInFileMode(t *testing.T) {
+	dir := t.TempDir()
+	createFile(t, dir, "file.txt", "")
+
+	opts := finder.DefaultOptions()
+	opts.Mode = finder.ModeFile
+	opts.StartDir = dir
+	m := finder.NewModel(opts)
+
+	cmd := m.Init()
+	msg := cmd()
+	updated, _ := m.Update(msg)
+	m = updated.(finder.Model)
+
+	// 's' in file mode should do nothing.
+	updated, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}})
+	m = updated.(finder.Model)
+
+	if m.SelectedPath() != "" {
+		t.Error("'s' should not select in file mode")
+	}
+}
+
+func TestFolderModeEnterOnFile(t *testing.T) {
+	dir := t.TempDir()
+	createFile(t, dir, "file.txt", "")
+
+	opts := finder.DefaultOptions()
+	opts.Mode = finder.ModeFolder
+	opts.StartDir = dir
+	m := finder.NewModel(opts)
+
+	cmd := m.Init()
+	msg := cmd()
+	updated, _ := m.Update(msg)
+	m = updated.(finder.Model)
+
+	// Enter on a file in folder mode should do nothing.
+	updated, cmd = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = updated.(finder.Model)
+
+	if m.SelectedPath() != "" {
+		t.Error("enter on file in folder mode should not select")
+	}
+}
+
+func TestCursorUpAtTop(t *testing.T) {
+	dir := t.TempDir()
+	createFile(t, dir, "file.txt", "")
+
+	opts := finder.DefaultOptions()
+	opts.Mode = finder.ModeFile
+	opts.StartDir = dir
+	m := finder.NewModel(opts)
+
+	cmd := m.Init()
+	msg := cmd()
+	updated, _ := m.Update(msg)
+	m = updated.(finder.Model)
+
+	// Up at top should stay at top.
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyUp})
+	m = updated.(finder.Model)
+
+	view := m.View()
+	if view == "" {
+		t.Error("expected non-empty view")
+	}
+}
+
+func TestCustomStyles(t *testing.T) {
+	dir := t.TempDir()
+	createFile(t, dir, "file.txt", "")
+
+	s := finder.DefaultStyles()
+	opts := finder.DefaultOptions()
+	opts.Mode = finder.ModeFile
+	opts.StartDir = dir
+	opts.Styles = &s
+	m := finder.NewModel(opts)
+
+	cmd := m.Init()
+	msg := cmd()
+	updated, _ := m.Update(msg)
+	m = updated.(finder.Model)
+
+	view := m.View()
+	if view == "" {
+		t.Error("expected non-empty view with custom styles")
+	}
+}
+
+func TestMultiSelectEnterWithNoSelections(t *testing.T) {
+	dir := t.TempDir()
+	createFile(t, dir, "file.txt", "")
+
+	opts := finder.DefaultOptions()
+	opts.Mode = finder.ModeMultiple
+	opts.StartDir = dir
+	m := finder.NewModel(opts)
+
+	cmd := m.Init()
+	msg := cmd()
+	updated, _ := m.Update(msg)
+	m = updated.(finder.Model)
+
+	// Enter on a file with no prior selections should select just that file.
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = updated.(finder.Model)
+
+	paths := m.SelectedPaths()
+	if len(paths) != 1 {
+		t.Fatalf("expected 1 selected path, got %d", len(paths))
+	}
+}
+
+func TestDirReadError(t *testing.T) {
+	opts := finder.DefaultOptions()
+	opts.Mode = finder.ModeFile
+	opts.StartDir = "/nonexistent/path/that/does/not/exist"
+	m := finder.NewModel(opts)
+
+	cmd := m.Init()
+	msg := cmd()
+	updated, _ := m.Update(msg)
+	m = updated.(finder.Model)
+
+	if m.Err() == nil {
+		t.Error("expected error for nonexistent directory")
+	}
+
+	view := m.View()
+	if !strings.Contains(view, "Error") {
+		t.Error("expected error message in view")
 	}
 }
 
