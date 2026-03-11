@@ -218,9 +218,19 @@ func (m Model) renderHelp() string {
 	}
 
 	if m.options.Interactive {
+		if m.options.Mode != ModeFolder {
+			bindings = append(bindings,
+				helpBinding{m.keys.NewFile.Help().Key, m.keys.NewFile.Help().Desc},
+			)
+			bindings = append(bindings,
+				helpBinding{m.keys.NewFolder.Help().Key, m.keys.NewFolder.Help().Desc},
+			)
+		} else {
+			bindings = append(bindings,
+				helpBinding{m.keys.NewFile.Help().Key + "/" + m.keys.NewFolder.Help().Key, m.keys.NewFolder.Help().Desc},
+			)
+		}
 		bindings = append(bindings,
-			helpBinding{m.keys.NewFile.Help().Key, m.keys.NewFile.Help().Desc},
-			helpBinding{m.keys.NewFolder.Help().Key, m.keys.NewFolder.Help().Desc},
 			helpBinding{m.keys.Delete.Help().Key, m.keys.Delete.Help().Desc},
 		)
 	}
