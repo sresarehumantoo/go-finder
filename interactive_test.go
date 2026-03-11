@@ -334,6 +334,106 @@ func TestInteractiveTrailingSlashOnlyDismisses(t *testing.T) {
 	}
 }
 
+func setupInteractiveFolderModel(t *testing.T, dir string) finder.Model {
+	t.Helper()
+	opts := finder.DefaultOptions()
+	opts.Mode = finder.ModeFolder
+	opts.StartDir = dir
+	opts.Interactive = true
+	m := finder.NewModel(opts)
+
+	cmd := m.Init()
+	msg := cmd()
+	updated, _ := m.Update(msg)
+	return updated.(finder.Model)
+}
+
+func TestInteractiveFolderModeNoNewFile(t *testing.T) {
+	dir := t.TempDir()
+	m := setupInteractiveFolderModel(t, dir)
+
+	// Help bar should not show "new file".
+	view := m.View()
+	if strings.Contains(view, "new file") {
+		t.Errorf("folder mode should not show 'new file' in help, got:\n%s", view)
+	}
+
+	// Help bar should show "n/N new folder" and "delete".
+	if !strings.Contains(view, "n/N") || !strings.Contains(view, "new folder") {
+		t.Errorf("folder mode should show 'n/N new folder' in help, got:\n%s", view)
+	}
+	if !strings.Contains(view, "delete") {
+		t.Errorf("folder mode should show 'delete' in help, got:\n%s", view)
+	}
+
+	// Press 'n' — should open new folder prompt (not new file).
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}})
+	m = updated.(finder.Model)
+
+	view = m.View()
+	if strings.Contains(view, "New file:") {
+		t.Error("folder mode should not show 'New file:' prompt")
+	}
+	if !strings.Contains(view, "New folder:") {
+		t.Error("folder mode should redirect 'n' key to new folder prompt")
+	}
+}
+
+func TestInteractiveFolderModeAllowsNewFolder(t *testing.T) {
+	dir := t.TempDir()
+	m := setupInteractiveFolderModel(t, dir)
+
+	// Press 'N' to start new folder prompt.
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'N'}})
+	m = updated.(finder.Model)
+
+	view := m.View()
+	if !strings.Contains(view, "New folder:") {
+		t.Fatalf("folder mode should allow creating folders, got:\n%s", view)
+	}
+
+	// Type folder name and create it.
+	for _, r := range "subdir" {
+		updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = updated.(finder.Model)
+	}
+
+	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = updated.(finder.Model)
+
+	if cmd == nil {
+		t.Fatal("expected readDir command after creating folder")
+	}
+
+	info, err := os.Stat(filepath.Join(dir, "subdir"))
+	if err != nil {
+		t.Fatalf("directory was not created: %v", err)
+	}
+	if !info.IsDir() {
+		t.Error("expected a directory, got a file")
+	}
+}
+
+func TestInteractiveFolderModeAllowsDelete(t *testing.T) {
+	dir := t.TempDir()
+	createDir(t, dir, "removeme")
+	m := setupInteractiveFolderModel(t, dir)
+
+	// Press 'd' then 'y' to delete.
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}})
+	m = updated.(finder.Model)
+	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}})
+	m = updated.(finder.Model)
+
+	if cmd == nil {
+		t.Fatal("expected readDir command after deleting folder")
+	}
+
+	if _, err := os.Stat(filepath.Join(dir, "removeme")); !os.IsNotExist(err) {
+		t.Error("directory should have been deleted")
+	}
+}
+
 func TestInteractiveDeleteOnEmptyDir(t *testing.T) {
 	dir := t.TempDir()
 	m := setupInteractiveModel(t, dir)

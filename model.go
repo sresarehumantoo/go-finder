@@ -245,11 +245,12 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.SelectDir):
 		return m.handleSelectDir()
 
-	case key.Matches(msg, m.keys.NewFile) && m.options.Interactive:
+	case key.Matches(msg, m.keys.NewFile) && m.options.Interactive && m.options.Mode != ModeFolder:
 		m.inputMode = inputNewFile
 		m.inputText = ""
 
-	case key.Matches(msg, m.keys.NewFolder) && m.options.Interactive:
+	case key.Matches(msg, m.keys.NewFolder) && m.options.Interactive,
+		key.Matches(msg, m.keys.NewFile) && m.options.Interactive && m.options.Mode == ModeFolder:
 		m.inputMode = inputNewFolder
 		m.inputText = ""
 
