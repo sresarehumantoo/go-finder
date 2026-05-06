@@ -180,7 +180,7 @@ go run ./examples/basic -expand -dir ~/symlink
 
 ## Requirements
 
-- Go 1.24+
+- Go 1.25+
 - A terminal with ANSI escape code support (virtually all modern terminals)
 
 ## License
