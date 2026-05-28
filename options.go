@@ -57,6 +57,10 @@ type Options struct {
 	// navigating back from a symlinked directory goes to the real parent
 	// rather than the symlink's parent.
 	ExpandSymlinks bool
+	// FuzzySearch enables scored fuzzy matching for the search filter,
+	// ranking results best-match-first. When false, search uses a plain
+	// case-insensitive substring match that preserves the original order.
+	FuzzySearch bool
 	// KeyMap overrides the default keybindings. Nil means use defaults.
 	KeyMap *KeyMap
 	// Styles overrides the default visual styles. Nil means use defaults.
@@ -75,12 +79,13 @@ func DefaultOptions() Options {
 	dir, _ = filepath.Abs(dir)
 
 	return Options{
-		StartDir:   dir,
-		Filters:    nil,
-		ShowHidden: false,
-		Mode:       ModeFile,
-		Title:      "Select a file",
-		Height:     0,
+		StartDir:    dir,
+		Filters:     nil,
+		ShowHidden:  false,
+		Mode:        ModeFile,
+		Title:       "Select a file",
+		Height:      0,
+		FuzzySearch: true,
 	}
 }
 
@@ -146,6 +151,16 @@ func WithInteractive(enabled bool) Option {
 func WithExpandSymlinks(enabled bool) Option {
 	return func(o *Options) {
 		o.ExpandSymlinks = enabled
+	}
+}
+
+// WithFuzzySearch toggles scored fuzzy matching for the search filter.
+// When enabled (the default), results are ranked best-match-first. When
+// disabled, search falls back to a case-insensitive substring match that
+// preserves the original directory ordering.
+func WithFuzzySearch(enabled bool) Option {
+	return func(o *Options) {
+		o.FuzzySearch = enabled
 	}
 }
 

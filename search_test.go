@@ -200,6 +200,80 @@ func TestSearchEmptyTermShowsAll(t *testing.T) {
 	}
 }
 
+// typeSearch starts a search and types the given term into the model.
+func typeSearch(t *testing.T, m finder.Model, term string) finder.Model {
+	t.Helper()
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	m = updated.(finder.Model)
+	for _, r := range term {
+		updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = updated.(finder.Model)
+	}
+	return m
+}
+
+func TestFuzzySearchRanksContiguousHigher(t *testing.T) {
+	dir := t.TempDir()
+	createFile(t, dir, "cfg.go", "")    // contiguous prefix match for "cfg"
+	createFile(t, dir, "config.go", "") // scattered subsequence c..f..g
+	createFile(t, dir, "readme.md", "") // no c-f-g subsequence
+
+	m := setupSearchModel(t, dir)
+	m = typeSearch(t, m, "cfg")
+
+	view := m.View()
+	cfgIdx := strings.Index(view, "cfg.go")
+	configIdx := strings.Index(view, "config.go")
+
+	if cfgIdx == -1 || configIdx == -1 {
+		t.Fatalf("expected both cfg.go and config.go to match 'cfg'; view:\n%s", view)
+	}
+	if cfgIdx > configIdx {
+		t.Errorf("expected cfg.go (tighter match) to rank above config.go")
+	}
+	if strings.Contains(view, "readme.md") {
+		t.Error("expected readme.md to be excluded from 'cfg' search")
+	}
+}
+
+func TestFuzzySearchMatchesSubsequence(t *testing.T) {
+	dir := t.TempDir()
+	createFile(t, dir, "alpha.go", "") // matches subsequence a-g-o
+	createFile(t, dir, "beta.txt", "") // does not
+
+	m := setupSearchModel(t, dir)
+	m = typeSearch(t, m, "ago")
+
+	view := m.View()
+	if !strings.Contains(view, "alpha.go") {
+		t.Error("expected alpha.go to match subsequence 'ago' with fuzzy search")
+	}
+	if strings.Contains(view, "beta.txt") {
+		t.Error("expected beta.txt to be excluded from 'ago' search")
+	}
+}
+
+func TestSubstringSearchOptOut(t *testing.T) {
+	dir := t.TempDir()
+	createFile(t, dir, "alpha.go", "")
+
+	opts := finder.DefaultOptions()
+	opts.Mode = finder.ModeFile
+	opts.StartDir = dir
+	finder.WithFuzzySearch(false)(&opts)
+	m := finder.NewModel(opts)
+	cmd := m.Init()
+	updated, _ := m.Update(cmd())
+	m = updated.(finder.Model)
+
+	// With substring matching, "ago" is NOT a substring of "alpha.go".
+	m = typeSearch(t, m, "ago")
+	view := m.View()
+	if strings.Contains(view, "alpha.go") {
+		t.Error("substring opt-out should not match 'ago' against alpha.go")
+	}
+}
+
 func TestCreateFileTrailingSlashCreatesDir(t *testing.T) {
 	dir := t.TempDir()
 	m := setupInteractiveModel(t, dir)

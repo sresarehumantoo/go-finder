@@ -10,7 +10,7 @@ A cross-platform, terminal-based file and folder picker for Go. Works consistent
 ## Features
 
 - **Four picker modes**: single file, single folder, any (file or folder), and multi-select
-- **Live search filtering**: press `/` to filter entries in real time
+- **Fuzzy search filtering**: press `/` to filter entries in real time, ranked best-match-first (opt out with `WithFuzzySearch(false)` for plain substring matching)
 - **Interactive mode**: create files/folders and delete entries without leaving the picker
 - **Glob-based file filtering** (`*.go`, `*.txt`, etc.)
 - **Hidden file support**: toggle at runtime, or force-show with distinct dim styling
@@ -137,7 +137,7 @@ path, err := finder.PickFile(
 
 | Key | Action |
 |---|---|
-| Type characters | Filter entries live |
+| Type characters | Filter entries live (fuzzy, ranked best-match-first) |
 | `backspace` | Remove last character (widens results) |
 | `enter` | Accept filtered results |
 | `esc` | Cancel search, restore full list |

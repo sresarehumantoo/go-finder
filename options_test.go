@@ -24,6 +24,18 @@ func TestDefaultOptions(t *testing.T) {
 	if opts.Title == "" {
 		t.Error("expected Title to be set")
 	}
+	if !opts.FuzzySearch {
+		t.Error("expected FuzzySearch to default to true")
+	}
+}
+
+func TestWithFuzzySearch(t *testing.T) {
+	opts := finder.DefaultOptions()
+	finder.WithFuzzySearch(false)(&opts)
+
+	if opts.FuzzySearch {
+		t.Error("expected FuzzySearch to be false after WithFuzzySearch(false)")
+	}
 }
 
 func TestWithStartDir(t *testing.T) {

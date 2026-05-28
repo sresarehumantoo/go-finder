@@ -7,6 +7,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/sahilm/fuzzy"
 	"golang.org/x/term"
 )
 
@@ -508,6 +509,8 @@ func (m Model) handleDeleteConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 // filterEntries filters the visible entries based on the current search term.
+// With fuzzy search enabled (the default), matches are ranked best-match-first;
+// otherwise a case-insensitive substring match preserves the original order.
 func (m *Model) filterEntries() {
 	if m.searchTerm == "" {
 		m.entries = m.allEntries
@@ -515,6 +518,32 @@ func (m *Model) filterEntries() {
 		m.offset = 0
 		return
 	}
+	if m.options.FuzzySearch {
+		m.filterFuzzy()
+	} else {
+		m.filterSubstring()
+	}
+	m.cursor = 0
+	m.offset = 0
+}
+
+// filterFuzzy ranks entries by fuzzy match score against the search term.
+func (m *Model) filterFuzzy() {
+	names := make([]string, len(m.allEntries))
+	for i, e := range m.allEntries {
+		names[i] = e.Name
+	}
+	matches := fuzzy.Find(m.searchTerm, names)
+	filtered := make([]FileEntry, 0, len(matches))
+	for _, mt := range matches {
+		filtered = append(filtered, m.allEntries[mt.Index])
+	}
+	m.entries = filtered
+}
+
+// filterSubstring keeps entries whose name contains the search term,
+// preserving the original ordering.
+func (m *Model) filterSubstring() {
 	term := strings.ToLower(m.searchTerm)
 	var filtered []FileEntry
 	for _, e := range m.allEntries {
@@ -523,8 +552,6 @@ func (m *Model) filterEntries() {
 		}
 	}
 	m.entries = filtered
-	m.cursor = 0
-	m.offset = 0
 }
 
 func (m *Model) cursorUp() {
