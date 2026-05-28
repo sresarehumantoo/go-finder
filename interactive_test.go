@@ -166,8 +166,7 @@ func TestInteractiveDeleteCancelled(t *testing.T) {
 	// Press 'd' then 'n' to cancel.
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'d'}})
 	m = updated.(finder.Model)
-	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}})
-	m = updated.(finder.Model)
+	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}})
 
 	// File should still exist.
 	if _, err := os.Stat(filepath.Join(dir, "safe.txt")); err != nil {
@@ -277,8 +276,7 @@ func TestInteractiveCreateWithSpace(t *testing.T) {
 		m = updated.(finder.Model)
 	}
 
-	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m = updated.(finder.Model)
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 
 	if cmd == nil {
 		t.Fatal("expected readDir after creating file with space in name")
@@ -301,8 +299,7 @@ func TestInteractiveCreateBackspace(t *testing.T) {
 	}
 	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyBackspace})
 	m = updated.(finder.Model)
-	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m = updated.(finder.Model)
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 
 	if cmd == nil {
 		t.Fatal("expected readDir after create")
@@ -323,8 +320,7 @@ func TestInteractiveTrailingSlashOnlyDismisses(t *testing.T) {
 		updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
 		m = updated.(finder.Model)
 	}
-	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m = updated.(finder.Model)
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 
 	if cmd != nil {
 		t.Error("trailing-slash-only name should not create anything")
@@ -395,8 +391,7 @@ func TestInteractiveFolderModeAllowsNewFolder(t *testing.T) {
 		m = updated.(finder.Model)
 	}
 
-	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m = updated.(finder.Model)
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 
 	if cmd == nil {
 		t.Fatal("expected readDir command after creating folder")

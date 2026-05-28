@@ -346,8 +346,7 @@ func TestBackReturnsCursorToLastDir(t *testing.T) {
 	}
 	// Complete the read to see which dir we navigated into.
 	msg = cmd()
-	updated, _ = m.Update(msg)
-	m = updated.(finder.Model)
+	_, _ = m.Update(msg)
 
 	// We won't easily get the dir name from the model, but we can verify
 	// it didn't go to "alpha" (index 0) by checking we can go back and
@@ -550,8 +549,7 @@ func TestMultiSelectNavigateWithRight(t *testing.T) {
 	m = updated.(finder.Model)
 
 	// Right arrow should navigate into dir.
-	updated, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRight})
-	m = updated.(finder.Model)
+	_, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRight})
 
 	if cmd == nil {
 		t.Fatal("right arrow should navigate into dir in multi-select mode")
@@ -889,8 +887,7 @@ func TestNavigateOnFile(t *testing.T) {
 	m = updated.(finder.Model)
 
 	// Right arrow on a file should do nothing.
-	updated, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRight})
-	m = updated.(finder.Model)
+	_, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRight})
 
 	if cmd != nil {
 		t.Error("right arrow on a file should not trigger a command")
@@ -911,8 +908,7 @@ func TestNavigateEmptyDir(t *testing.T) {
 	m = updated.(finder.Model)
 
 	// Right arrow on empty dir should do nothing.
-	updated, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRight})
-	m = updated.(finder.Model)
+	_, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRight})
 
 	if cmd != nil {
 		t.Error("right arrow on empty dir should not trigger a command")
@@ -957,7 +953,7 @@ func TestFolderModeEnterOnFile(t *testing.T) {
 	m = updated.(finder.Model)
 
 	// Enter on a file in folder mode should do nothing.
-	updated, cmd = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = updated.(finder.Model)
 
 	if m.SelectedPath() != "" {
