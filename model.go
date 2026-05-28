@@ -16,6 +16,7 @@ type Model struct {
 	options  Options
 	keys     KeyMap
 	styles   Styles
+	fsys     FileSystem
 	entries  []FileEntry
 	cursor   int
 	offset   int
@@ -50,11 +51,37 @@ func NewModel(opts Options) Model {
 		h = 24
 	}
 
-	startDir := opts.StartDir
-	if opts.ExpandSymlinks {
-		startDir = ResolvePath(startDir)
-		opts.StartDir = startDir
+	var fsys FileSystem = osFS{}
+	if opts.FS != nil {
+		fsys = opts.FS
 	}
+	_, isOS := fsys.(osFS)
+
+	startDir := opts.StartDir
+	if isOS {
+		if startDir == "" {
+			startDir = fsys.Root()
+		}
+		startDir = expandHome(startDir)
+		if abs, err := filepath.Abs(startDir); err == nil {
+			startDir = abs
+		}
+		if opts.ExpandSymlinks {
+			startDir = ResolvePath(startDir)
+		}
+	} else {
+		// Symlink expansion is OS-specific and meaningless for a custom FS.
+		opts.ExpandSymlinks = false
+		// DefaultOptions seeds StartDir with an absolute OS path, which has no
+		// meaning here; fall back to the filesystem root unless the caller gave
+		// a relative in-FS path.
+		if startDir == "" || filepath.IsAbs(startDir) {
+			startDir = fsys.Root()
+		} else {
+			startDir = cleanFSPath(startDir)
+		}
+	}
+	opts.StartDir = startDir
 
 	keys := DefaultKeyMap()
 	if opts.KeyMap != nil {
@@ -69,6 +96,7 @@ func NewModel(opts Options) Model {
 		options:      opts,
 		keys:         keys,
 		styles:       styles,
+		fsys:         fsys,
 		selected:     make(map[string]struct{}),
 		dir:          startDir,
 		hiddenForced: opts.ShowHidden,
@@ -136,11 +164,16 @@ type dirReadMsg struct {
 
 func (m Model) readDir() tea.Cmd {
 	dir := m.dir
+	fsys := m.fsys
 	showHidden := m.options.ShowHidden
 	filters := m.options.Filters
 	return func() tea.Msg {
-		entries, err := ReadDir(dir, showHidden, filters)
-		return dirReadMsg{entries: entries, dir: dir, err: err}
+		raw, err := fsys.ReadDir(dir)
+		if err != nil {
+			return dirReadMsg{dir: dir, err: err}
+		}
+		entries := buildEntries(fsys, dir, raw, showHidden, filters)
+		return dirReadMsg{entries: entries, dir: dir}
 	}
 }
 
@@ -232,9 +265,9 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		copy(m.allEntries, m.entries)
 
 	case key.Matches(msg, m.keys.Back):
-		parent := m.resolve(ParentDir(m.dir))
+		parent := m.resolve(m.fsys.Parent(m.dir))
 		if parent != m.dir {
-			m.returnTo = filepath.Base(m.dir)
+			m.returnTo = m.fsys.Base(m.dir)
 			m.dir = parent
 			return m, m.readDir()
 		}
@@ -247,15 +280,27 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleSelectDir()
 
 	case key.Matches(msg, m.keys.NewFile) && m.options.Interactive && m.options.Mode != ModeFolder:
+		if !m.writable() {
+			m.statusMsg = readOnlyMsg
+			return m, nil
+		}
 		m.inputMode = inputNewFile
 		m.inputText = ""
 
 	case key.Matches(msg, m.keys.NewFolder) && m.options.Interactive,
 		key.Matches(msg, m.keys.NewFile) && m.options.Interactive && m.options.Mode == ModeFolder:
+		if !m.writable() {
+			m.statusMsg = readOnlyMsg
+			return m, nil
+		}
 		m.inputMode = inputNewFolder
 		m.inputText = ""
 
 	case key.Matches(msg, m.keys.Delete) && m.options.Interactive:
+		if !m.writable() {
+			m.statusMsg = readOnlyMsg
+			return m, nil
+		}
 		if len(m.entries) > 0 {
 			m.inputMode = inputConfirmDelete
 		}
@@ -442,6 +487,14 @@ func (m Model) handleCreateInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+		w, ok := m.fsys.(WritableFileSystem)
+		if !ok {
+			m.inputMode = inputNone
+			m.inputText = ""
+			m.statusMsg = readOnlyMsg
+			return m, nil
+		}
+
 		var err error
 		if m.inputMode == inputNewFile && strings.HasSuffix(name, "/") {
 			name = strings.TrimRight(name, "/")
@@ -450,11 +503,11 @@ func (m Model) handleCreateInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.inputText = ""
 				return m, nil
 			}
-			err = CreateDir(m.dir, name)
+			err = w.CreateDir(m.dir, name)
 		} else if m.inputMode == inputNewFile {
-			err = CreateFile(m.dir, name)
+			err = w.CreateFile(m.dir, name)
 		} else {
-			err = CreateDir(m.dir, name)
+			err = w.CreateDir(m.dir, name)
 		}
 
 		m.inputMode = inputNone
@@ -490,9 +543,14 @@ func (m Model) handleDeleteConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	m.inputMode = inputNone
 
 	if msg.Type == tea.KeyRunes && len(msg.Runes) > 0 && (msg.Runes[0] == 'y' || msg.Runes[0] == 'Y') {
+		w, ok := m.fsys.(WritableFileSystem)
+		if !ok {
+			m.statusMsg = readOnlyMsg
+			return m, nil
+		}
 		if m.cursor >= 0 && m.cursor < len(m.entries) {
 			entry := m.entries[m.cursor]
-			err := DeletePath(entry.Path)
+			err := w.Remove(entry.Path)
 			if err != nil {
 				m.statusMsg = "Error: " + err.Error()
 				return m, nil
@@ -614,6 +672,16 @@ func (m Model) visibleRows() int {
 		h = 3
 	}
 	return h
+}
+
+// readOnlyMsg is shown when an interactive action is attempted on a
+// filesystem that does not support writes (e.g. a custom io/fs.FS).
+const readOnlyMsg = "Filesystem is read-only"
+
+// writable reports whether the active filesystem supports create/delete.
+func (m Model) writable() bool {
+	_, ok := m.fsys.(WritableFileSystem)
+	return ok
 }
 
 // resolve applies symlink resolution if ExpandSymlinks is enabled.

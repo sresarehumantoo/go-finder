@@ -1,6 +1,7 @@
 package finder
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 )
@@ -61,6 +62,11 @@ type Options struct {
 	// ranking results best-match-first. When false, search uses a plain
 	// case-insensitive substring match that preserves the original order.
 	FuzzySearch bool
+	// FS is the filesystem backend the picker reads from. Nil means the
+	// host operating system. Set it via WithFS to browse a custom io/fs.FS
+	// (e.g. an embed.FS or fstest.MapFS); such filesystems are read-only,
+	// so interactive create/delete is disabled for them.
+	FS FileSystem
 	// KeyMap overrides the default keybindings. Nil means use defaults.
 	KeyMap *KeyMap
 	// Styles overrides the default visual styles. Nil means use defaults.
@@ -89,15 +95,13 @@ func DefaultOptions() Options {
 	}
 }
 
-// WithStartDir sets the initial directory for the picker.
+// WithStartDir sets the initial directory for the picker. For the default OS
+// backend the path is resolved to an absolute path when the picker starts; for
+// a custom filesystem (see WithFS) it is interpreted as a relative,
+// slash-separated path within that filesystem.
 func WithStartDir(dir string) Option {
 	return func(o *Options) {
-		abs, err := filepath.Abs(dir)
-		if err == nil {
-			o.StartDir = abs
-		} else {
-			o.StartDir = dir
-		}
+		o.StartDir = dir
 	}
 }
 
@@ -151,6 +155,19 @@ func WithInteractive(enabled bool) Option {
 func WithExpandSymlinks(enabled bool) Option {
 	return func(o *Options) {
 		o.ExpandSymlinks = enabled
+	}
+}
+
+// WithFS sets a custom filesystem backend to browse instead of the host OS.
+// The picker navigates the given io/fs.FS in slash-separated path space,
+// starting at its root ("."). Because io/fs is read-only, interactive
+// create/delete is unavailable on a custom filesystem.
+//
+// To start in a subdirectory, combine with WithStartDir using a relative,
+// slash-separated path (e.g. WithStartDir("docs/api")).
+func WithFS(fsys fs.FS) Option {
+	return func(o *Options) {
+		o.FS = fsAdapter{fsys: fsys, label: "/"}
 	}
 }
 

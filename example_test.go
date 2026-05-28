@@ -2,6 +2,7 @@ package finder_test
 
 import (
 	"fmt"
+	"testing/fstest"
 
 	finder "github.com/SREsAreHumanToo/go-finder"
 	"github.com/charmbracelet/bubbles/key"
@@ -54,6 +55,21 @@ func ExampleWithKeyMap() {
 		key.WithHelp("x", "exit"),
 	)
 	_, _ = finder.PickFile(finder.WithKeyMap(km))
+}
+
+// Browse an in-memory filesystem instead of the host OS. Any io/fs.FS works,
+// including embed.FS and fstest.MapFS. Custom filesystems are read-only, so
+// interactive create/delete is disabled for them.
+func ExampleWithFS() {
+	mem := fstest.MapFS{
+		"docs/readme.md": {Data: []byte("# hello")},
+		"main.go":        {Data: []byte("package main")},
+	}
+	path, err := finder.PickFile(finder.WithFS(mem))
+	if err != nil {
+		return
+	}
+	fmt.Println("selected:", path)
 }
 
 // Override visual styles for directory entries.

@@ -16,7 +16,7 @@ func (m Model) View() string {
 	b.WriteString(m.styles.Title.Render(m.options.Title))
 	b.WriteString("\n")
 
-	displayDir := m.dir
+	displayDir := m.fsys.Display(m.dir)
 	maxPath := m.width - 4
 	if maxPath > 0 && len(displayDir) > maxPath {
 		displayDir = "…" + displayDir[len(displayDir)-maxPath+1:]
