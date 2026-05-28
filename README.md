@@ -24,8 +24,12 @@ A cross-platform, terminal-based file and folder picker for Go. Works consistent
 ## Install
 
 ```bash
-go get github.com/SREsAreHumanToo/go-finder
+go get github.com/SREsAreHumanToo/go-finder@latest
 ```
+
+> The module path is case-sensitive: use `SREsAreHumanToo` exactly as shown.
+> Go's module proxy distinguishes capitalization, so `sresarehumantoo`
+> will fail with a "case mismatch" error.
 
 ## Quick Start
 
