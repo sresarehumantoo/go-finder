@@ -27,11 +27,12 @@ func TestDefaultOptions(t *testing.T) {
 }
 
 func TestWithStartDir(t *testing.T) {
+	dir := t.TempDir()
 	opts := finder.DefaultOptions()
-	finder.WithStartDir("/tmp")(&opts)
+	finder.WithStartDir(dir)(&opts)
 
-	if opts.StartDir != "/tmp" {
-		t.Errorf("expected StartDir /tmp, got %s", opts.StartDir)
+	if opts.StartDir != dir {
+		t.Errorf("expected StartDir %s, got %s", dir, opts.StartDir)
 	}
 }
 

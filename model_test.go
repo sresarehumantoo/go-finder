@@ -2,6 +2,7 @@ package finder_test
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -57,15 +58,15 @@ func TestFolderModeSelectHighlightedDir(t *testing.T) {
 
 	// Cursor should be on the first entry (the directory, sorted first).
 	// Press enter to select the highlighted directory.
-	updated, cmd = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = updated.(finder.Model)
 
 	selected := m.SelectedPath()
 	if selected == "" {
 		t.Fatal("expected a directory to be selected, got empty string")
 	}
-	if selected != dir+"/"+sub {
-		t.Errorf("expected selected path %s/%s, got %s", dir, sub, selected)
+	if selected != filepath.Join(dir, sub) {
+		t.Errorf("expected selected path %s, got %s", filepath.Join(dir, sub), selected)
 	}
 }
 
@@ -85,7 +86,7 @@ func TestFolderModeSelectCurrentDir(t *testing.T) {
 	m = updated.(finder.Model)
 
 	// Press 's' to select the current working directory.
-	updated, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}})
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}})
 	m = updated.(finder.Model)
 
 	selected := m.SelectedPath()
@@ -181,8 +182,8 @@ func TestAnyModeSelectFile(t *testing.T) {
 	if selected == "" {
 		t.Fatal("expected a file to be selected")
 	}
-	if selected != dir+"/readme.md" {
-		t.Errorf("expected %s/readme.md, got %s", dir, selected)
+	if selected != filepath.Join(dir, "readme.md") {
+		t.Errorf("expected %s, got %s", filepath.Join(dir, "readme.md"), selected)
 	}
 }
 
@@ -236,8 +237,8 @@ func TestAnyModeTabSelectsDir(t *testing.T) {
 	m = updated.(finder.Model)
 
 	selected := m.SelectedPath()
-	if selected != dir+"/"+sub {
-		t.Errorf("expected %s/%s, got %s", dir, sub, selected)
+	if selected != filepath.Join(dir, sub) {
+		t.Errorf("expected %s, got %s", filepath.Join(dir, sub), selected)
 	}
 }
 
@@ -394,15 +395,15 @@ func TestBackReturnsCursorToLastDirAnyMode(t *testing.T) {
 	m = updated.(finder.Model)
 
 	selected := m.SelectedPath()
-	if selected != dir+"/bbb" {
-		t.Errorf("expected cursor on %s/bbb after going back, got %s", dir, selected)
+	if selected != filepath.Join(dir, "bbb") {
+		t.Errorf("expected cursor on %s after going back, got %s", filepath.Join(dir, "bbb"), selected)
 	}
 }
 
 func TestAtHighestLevelMessage(t *testing.T) {
 	opts := finder.DefaultOptions()
 	opts.Mode = finder.ModeFile
-	opts.StartDir = "/"
+	opts.StartDir = filesystemRoot(t)
 	m := finder.NewModel(opts)
 
 	// Load entries.
@@ -429,7 +430,7 @@ func TestNoHighestLevelMessageWhenBackingNormally(t *testing.T) {
 
 	opts := finder.DefaultOptions()
 	opts.Mode = finder.ModeFile
-	opts.StartDir = dir + "/" + child
+	opts.StartDir = filepath.Join(dir, child)
 	m := finder.NewModel(opts)
 
 	// Load entries for the child dir.
@@ -456,7 +457,7 @@ func TestNoHighestLevelMessageWhenBackingNormally(t *testing.T) {
 func TestEscAtRootShowsMessage(t *testing.T) {
 	opts := finder.DefaultOptions()
 	opts.Mode = finder.ModeFile
-	opts.StartDir = "/"
+	opts.StartDir = filesystemRoot(t)
 	m := finder.NewModel(opts)
 
 	// Load entries for root.
@@ -485,7 +486,7 @@ func TestEscGoesBackToParent(t *testing.T) {
 
 	opts := finder.DefaultOptions()
 	opts.Mode = finder.ModeFile
-	opts.StartDir = dir + "/" + child
+	opts.StartDir = filepath.Join(dir, child)
 	m := finder.NewModel(opts)
 
 	// Load entries.
@@ -561,7 +562,7 @@ func TestMultiSelectToggleAcrossDirs(t *testing.T) {
 	dir := t.TempDir()
 	createDir(t, dir, "sub")
 	createFile(t, dir, "a.txt", "")
-	createFile(t, dir+"/sub", "b.txt", "")
+	createFile(t, filepath.Join(dir, "sub"), "b.txt", "")
 
 	opts := finder.DefaultOptions()
 	opts.Mode = finder.ModeMultiple
@@ -933,7 +934,7 @@ func TestSelectDirInFileMode(t *testing.T) {
 	m = updated.(finder.Model)
 
 	// 's' in file mode should do nothing.
-	updated, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}})
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}})
 	m = updated.(finder.Model)
 
 	if m.SelectedPath() != "" {

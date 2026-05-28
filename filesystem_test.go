@@ -77,11 +77,29 @@ func TestParentDir(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := finder.ParentDir(tt.input)
-		if got != tt.expected {
-			t.Errorf("ParentDir(%q) = %q, want %q", tt.input, got, tt.expected)
+		in := filepath.FromSlash(tt.input)
+		want := filepath.FromSlash(tt.expected)
+		got := finder.ParentDir(in)
+		if got != want {
+			t.Errorf("ParentDir(%q) = %q, want %q", in, got, want)
 		}
 	}
+}
+
+// filesystemRoot returns the OS-native filesystem root: "/" on Unix and the
+// current drive root (e.g. "C:\\") on Windows. Used for tests that exercise
+// "at root" behavior.
+func filesystemRoot(t *testing.T) string {
+	t.Helper()
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("os.Getwd: %v", err)
+	}
+	vol := filepath.VolumeName(wd)
+	if vol == "" {
+		return string(filepath.Separator)
+	}
+	return vol + string(filepath.Separator)
 }
 
 func TestNormalizePath(t *testing.T) {

@@ -40,7 +40,7 @@ func TestExpandSymlinksStartDir(t *testing.T) {
 	}
 
 	// The displayed path should be the resolved real directory.
-	realAbs, _ := filepath.Abs(realDir)
+	realAbs := resolveExpected(t, realDir)
 	if !containsPath(view, realAbs) {
 		t.Errorf("expected resolved path %s in view, got:\n%s", realAbs, view)
 	}
@@ -88,13 +88,13 @@ func TestExpandSymlinksBackNavigation(t *testing.T) {
 
 	// The view should show realBase as the current path.
 	view := m.View()
-	realBaseAbs, _ := filepath.Abs(realBase)
+	realBaseAbs := resolveExpected(t, realBase)
 	if !containsPath(view, realBaseAbs) {
 		t.Errorf("expected real parent %s in view after esc, got:\n%s", realBaseAbs, view)
 	}
 
 	// Should NOT contain the link parent path.
-	linkParentAbs, _ := filepath.Abs(linkParent)
+	linkParentAbs := resolveExpected(t, linkParent)
 	if containsPath(view, linkParentAbs) {
 		t.Errorf("should not show symlink parent %s, got:\n%s", linkParentAbs, view)
 	}
@@ -139,13 +139,41 @@ func TestResolvePath(t *testing.T) {
 	}
 
 	resolved := finder.ResolvePath(linkPath)
-	realAbs, _ := filepath.Abs(realDir)
+	realAbs := resolveExpected(t, realDir)
 	if resolved != realAbs {
 		t.Errorf("ResolvePath(%s) = %s, want %s", linkPath, resolved, realAbs)
 	}
 }
 
-// containsPath checks if the view string contains the given path.
+// containsPath checks if the view string contains the given path. The view
+// truncates the displayed path with a leading "…" when it exceeds the terminal
+// width, so this also matches any "…<suffix>" form.
 func containsPath(view, path string) bool {
-	return strings.Contains(view, filepath.Clean(path))
+	path = filepath.Clean(path)
+	if strings.Contains(view, path) {
+		return true
+	}
+	runes := []rune(path)
+	for i := 1; i < len(runes); i++ {
+		if strings.Contains(view, "…"+string(runes[i:])) {
+			return true
+		}
+	}
+	return false
+}
+
+// resolveExpected returns the absolute, symlink-resolved form of p, matching
+// what the library produces via filepath.EvalSymlinks + filepath.Abs. On macOS
+// this normalizes /var → /private/var; on Windows it expands 8.3 short names.
+func resolveExpected(t *testing.T, p string) string {
+	t.Helper()
+	abs, err := filepath.Abs(p)
+	if err != nil {
+		t.Fatalf("filepath.Abs(%q): %v", p, err)
+	}
+	resolved, err := filepath.EvalSymlinks(abs)
+	if err != nil {
+		return abs
+	}
+	return resolved
 }
