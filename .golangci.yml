@@ -1,0 +1,22 @@
+version: "2"
+
+# Lock the active check set explicitly so a new golangci-lint release that adds
+# a check doesn't unexpectedly fail CI. "standard" enables errcheck, govet,
+# ineffassign, staticcheck, and unused.
+linters:
+  default: standard
+  settings:
+    staticcheck:
+      checks:
+        - all
+  exclusions:
+    rules:
+      # Generated examples are allowed to discard the return error for brevity
+      # since this is the godoc-recommended style.
+      - path: example_test\.go
+        linters:
+          - errcheck
+
+formatters:
+  enable:
+    - gofmt

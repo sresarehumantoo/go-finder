@@ -1,0 +1,71 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: go-finder
+    main: ./examples/basic
+    binary: go-finder
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+    goos:
+      - linux
+      - darwin
+      - windows
+      - freebsd
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - id: default
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "arm64" }}arm64
+      {{- else }}{{ .Arch }}
+      {{- end }}
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: 'checksums.txt'
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - 'Merge pull request'
+      - 'Co-Authored-By:'
+
+release:
+  draft: false
+  prerelease: auto
+  header: |
+    ## go-finder {{ .Tag }}
+
+    Binaries below are the **basic example program** (cross-compiled demos
+    of the picker). To use the library in your own code, run:
+
+    ```bash
+    go get github.com/SREsAreHumanToo/go-finder@{{ .Tag }}
+    ```
+  footer: |
+    **Full changelog:** https://github.com/SREsAreHumanToo/go-finder/compare/{{ .PreviousTag }}...{{ .Tag }}
