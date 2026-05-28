@@ -3,6 +3,7 @@
 [![CI](https://github.com/SREsAreHumanToo/go-finder/actions/workflows/ci.yml/badge.svg)](https://github.com/SREsAreHumanToo/go-finder/actions/workflows/ci.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/SREsAreHumanToo/go-finder.svg)](https://pkg.go.dev/github.com/SREsAreHumanToo/go-finder)
 [![Go Report Card](https://goreportcard.com/badge/github.com/SREsAreHumanToo/go-finder)](https://goreportcard.com/report/github.com/SREsAreHumanToo/go-finder)
+[![codecov](https://codecov.io/gh/SREsAreHumanToo/go-finder/graph/badge.svg)](https://codecov.io/gh/SREsAreHumanToo/go-finder)
 
 A cross-platform, terminal-based file and folder picker for Go. Works consistently across Windows, macOS, Linux, BSD, WSL, and Git Bash with zero OS-specific dependencies.
 
@@ -24,8 +25,12 @@ A cross-platform, terminal-based file and folder picker for Go. Works consistent
 ## Install
 
 ```bash
-go get github.com/SREsAreHumanToo/go-finder
+go get github.com/SREsAreHumanToo/go-finder@latest
 ```
+
+> The module path is case-sensitive: use `SREsAreHumanToo` exactly as shown.
+> Go's module proxy distinguishes capitalization, so `sresarehumantoo`
+> will fail with a "case mismatch" error.
 
 ## Quick Start
 

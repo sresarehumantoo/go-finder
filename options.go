@@ -1,6 +1,3 @@
-// Package finder provides a cross-platform, terminal-based file and folder
-// picker that works consistently across Windows, macOS, Linux, BSD, WSL, and
-// Git Bash without any OS-specific dependencies.
 package finder
 
 import (
