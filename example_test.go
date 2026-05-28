@@ -72,6 +72,27 @@ func ExampleWithFS() {
 	fmt.Println("selected:", path)
 }
 
+// Show a preview pane beside the file list. The pane previews the highlighted
+// entry (file head, directory listing, or metadata) and is hidden automatically
+// on narrow terminals.
+func ExampleWithPreview() {
+	path, err := finder.PickFile(finder.WithPreview(true))
+	if err != nil {
+		return
+	}
+	fmt.Println("selected:", path)
+}
+
+// Supply a custom preview renderer. The function receives the highlighted entry
+// and the pane dimensions, and returns the text to display.
+func ExampleWithPreviewFunc() {
+	_, _ = finder.PickFile(finder.WithPreviewFunc(
+		func(e finder.FileEntry, width, height int) string {
+			return fmt.Sprintf("%s\n%s", e.Name, finder.FormatSize(e.Size))
+		},
+	))
+}
+
 // Override visual styles for directory entries.
 func ExampleWithStyles() {
 	s := finder.DefaultStyles()

@@ -62,6 +62,14 @@ type Options struct {
 	// ranking results best-match-first. When false, search uses a plain
 	// case-insensitive substring match that preserves the original order.
 	FuzzySearch bool
+	// Preview enables a right-hand pane that previews the highlighted entry
+	// (file head, directory listing, or metadata). Off by default.
+	Preview bool
+	// PreviewFunc customizes how the highlighted entry is previewed. When nil,
+	// a built-in preview is used. It receives the entry and the pane's
+	// width/height (in cells) and returns the preview text; the result is
+	// clipped to fit the pane.
+	PreviewFunc PreviewFunc
 	// FS is the filesystem backend the picker reads from. Nil means the
 	// host operating system. Set it via WithFS to browse a custom io/fs.FS
 	// (e.g. an embed.FS or fstest.MapFS); such filesystems are read-only,
@@ -75,6 +83,12 @@ type Options struct {
 
 // Option is a functional option for configuring the picker.
 type Option func(*Options)
+
+// PreviewFunc renders a preview of the highlighted entry. It is given the
+// entry and the preview pane's width and height in terminal cells, and returns
+// the preview text (which may span multiple lines). The returned text is
+// clipped to the pane's dimensions.
+type PreviewFunc func(e FileEntry, width, height int) string
 
 // DefaultOptions returns a new Options struct with sensible defaults.
 func DefaultOptions() Options {
@@ -155,6 +169,23 @@ func WithInteractive(enabled bool) Option {
 func WithExpandSymlinks(enabled bool) Option {
 	return func(o *Options) {
 		o.ExpandSymlinks = enabled
+	}
+}
+
+// WithPreview enables (or disables) the preview pane shown beside the file
+// list. The pane is hidden automatically when the terminal is too narrow.
+func WithPreview(enabled bool) Option {
+	return func(o *Options) {
+		o.Preview = enabled
+	}
+}
+
+// WithPreviewFunc sets a custom preview renderer and enables the preview pane.
+// Pass nil to fall back to the built-in preview while keeping the pane enabled.
+func WithPreviewFunc(fn PreviewFunc) Option {
+	return func(o *Options) {
+		o.PreviewFunc = fn
+		o.Preview = true
 	}
 }
 

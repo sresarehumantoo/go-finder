@@ -4,24 +4,26 @@ import "github.com/charmbracelet/lipgloss"
 
 // Styles holds all visual styles for the picker UI.
 type Styles struct {
-	Title        lipgloss.Style
-	Path         lipgloss.Style
-	Cursor       lipgloss.Style
-	Selected     lipgloss.Style
-	Directory    lipgloss.Style
-	HiddenDir    lipgloss.Style
-	File         lipgloss.Style
-	HiddenFile   lipgloss.Style
-	FileSize     lipgloss.Style
-	Permission   lipgloss.Style
-	StatusBar    lipgloss.Style
-	SearchPrompt lipgloss.Style
-	SearchText   lipgloss.Style
-	Help         lipgloss.Style
-	HelpKey      lipgloss.Style
-	HelpDesc     lipgloss.Style
-	HelpSep      lipgloss.Style
-	Border       lipgloss.Style
+	Title         lipgloss.Style
+	Path          lipgloss.Style
+	Cursor        lipgloss.Style
+	Selected      lipgloss.Style
+	Directory     lipgloss.Style
+	HiddenDir     lipgloss.Style
+	File          lipgloss.Style
+	HiddenFile    lipgloss.Style
+	FileSize      lipgloss.Style
+	Permission    lipgloss.Style
+	StatusBar     lipgloss.Style
+	SearchPrompt  lipgloss.Style
+	SearchText    lipgloss.Style
+	Help          lipgloss.Style
+	HelpKey       lipgloss.Style
+	HelpDesc      lipgloss.Style
+	HelpSep       lipgloss.Style
+	Border        lipgloss.Style
+	Preview       lipgloss.Style
+	PreviewBorder lipgloss.Style
 }
 
 // DefaultStyles returns the default color scheme and styling.
@@ -95,5 +97,13 @@ func DefaultStyles() Styles {
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("62")).
 			Padding(1, 2),
+
+		Preview: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("250")),
+
+		PreviewBorder: lipgloss.NewStyle().
+			Border(lipgloss.NormalBorder(), false, false, false, true).
+			BorderForeground(lipgloss.Color("62")).
+			PaddingLeft(1),
 	}
 }

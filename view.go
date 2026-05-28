@@ -3,6 +3,8 @@ package finder
 import (
 	"fmt"
 	"strings"
+
+	"github.com/charmbracelet/lipgloss"
 )
 
 // View implements tea.Model. It renders the full picker UI.
@@ -35,26 +37,31 @@ func (m Model) View() string {
 		return b.String()
 	}
 
+	listW, prevW, prevH := m.layout()
+	visible := m.visibleRows()
+
+	var listLines []string
 	if len(m.entries) == 0 {
-		b.WriteString(m.styles.Help.Render("  (empty directory)"))
-		b.WriteString("\n")
+		listLines = append(listLines, m.styles.Help.Render("  (empty directory)"))
 	}
 
-	visible := m.visibleRows()
 	end := m.offset + visible
 	if end > len(m.entries) {
 		end = len(m.entries)
 	}
-
 	for i := m.offset; i < end; i++ {
 		entry := m.entries[i]
 		isCursor := i == m.cursor
 		_, isSelected := m.selected[entry.Path]
-
-		line := m.renderEntry(entry, isCursor, isSelected)
-		b.WriteString(line)
-		b.WriteString("\n")
+		listLines = append(listLines, m.renderEntry(entry, isCursor, isSelected, listW))
 	}
+
+	if prevW > 0 && prevH > 0 {
+		b.WriteString(m.renderSplit(listLines, listW, prevW))
+	} else {
+		b.WriteString(strings.Join(listLines, "\n"))
+	}
+	b.WriteString("\n")
 
 	var statusParts []string
 	if len(m.entries) > visible {
@@ -109,7 +116,15 @@ func (m Model) View() string {
 	return b.String()
 }
 
-func (m Model) renderEntry(e FileEntry, isCursor, isSelected bool) string {
+// renderSplit lays the file list and the preview pane out side by side.
+func (m Model) renderSplit(listLines []string, listW, prevW int) string {
+	left := lipgloss.NewStyle().Width(listW).Render(strings.Join(listLines, "\n"))
+	content := m.styles.Preview.Render(strings.Join(m.previewLines, "\n"))
+	right := m.styles.PreviewBorder.Width(prevW).Render(content)
+	return lipgloss.JoinHorizontal(lipgloss.Top, left, right)
+}
+
+func (m Model) renderEntry(e FileEntry, isCursor, isSelected bool, width int) string {
 	var prefix string
 	if isCursor {
 		prefix = m.styles.Cursor.Render("> ")
@@ -130,7 +145,7 @@ func (m Model) renderEntry(e FileEntry, isCursor, isSelected bool) string {
 
 	sizeWidth := 10
 	overhead := 2 + markerWidth + 2 + sizeWidth
-	maxName := m.width - overhead
+	maxName := width - overhead
 	if maxName < 10 {
 		maxName = 10
 	}

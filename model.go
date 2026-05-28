@@ -37,6 +37,9 @@ type Model struct {
 	statusMsg    string
 	hiddenForced bool
 
+	previewPath  string
+	previewLines []string
+
 	width  int
 	height int
 }
@@ -183,6 +186,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		m.refreshPreview()
 		return m, nil
 
 	case dirReadMsg:
@@ -210,13 +214,33 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.returnTo = ""
 		}
+		m.refreshPreview()
 		return m, nil
 
 	case tea.KeyMsg:
-		return m.handleKey(msg)
+		prev := m.currentPath()
+		updated, cmd := m.handleKey(msg)
+		nm, ok := updated.(Model)
+		if !ok {
+			return updated, cmd
+		}
+		// Refresh the preview only when the selection changed and no directory
+		// read is pending (a pending read refreshes via dirReadMsg instead).
+		if cmd == nil && nm.currentPath() != prev {
+			nm.refreshPreview()
+		}
+		return nm, cmd
 	}
 
 	return m, nil
+}
+
+// currentPath returns the path of the highlighted entry, or "" if none.
+func (m Model) currentPath() string {
+	if m.cursor >= 0 && m.cursor < len(m.entries) {
+		return m.entries[m.cursor].Path
+	}
+	return ""
 }
 
 func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {

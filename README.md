@@ -16,6 +16,7 @@ A cross-platform, terminal-based file and folder picker for Go. Works consistent
 - **Hidden file support**: toggle at runtime, or force-show with distinct dim styling
 - **Symlink expansion**: optionally resolve symlinks to real paths
 - **Pluggable filesystem**: browse any `io/fs.FS` (e.g. `embed.FS`, `fstest.MapFS`) via `WithFS` — defaults to the host OS
+- **Preview pane**: optional side pane (`WithPreview`) showing a file's head, a directory's listing, or metadata; customizable via `WithPreviewFunc`
 - **Smart truncation**: long paths and filenames are truncated with `…` to fit the terminal
 - **Fully customizable**: override any keybinding or visual style
 - **Vim-style navigation** (`h/j/k/l`) plus standard arrow keys
