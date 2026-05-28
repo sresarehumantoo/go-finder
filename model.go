@@ -475,9 +475,10 @@ func (m Model) handleCreateInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	default:
-		if msg.Type == tea.KeyRunes {
+		switch msg.Type {
+		case tea.KeyRunes:
 			m.inputText += string(msg.Runes)
-		} else if msg.Type == tea.KeySpace {
+		case tea.KeySpace:
 			m.inputText += " "
 		}
 		return m, nil

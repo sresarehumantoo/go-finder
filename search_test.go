@@ -215,8 +215,7 @@ func TestCreateFileTrailingSlashCreatesDir(t *testing.T) {
 	}
 
 	// Press enter.
-	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m = updated.(finder.Model)
+	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 
 	if cmd == nil {
 		t.Fatal("expected readDir command after creating")
