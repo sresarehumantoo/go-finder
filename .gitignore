@@ -10,6 +10,7 @@ dist/
 /custom
 /preview
 /embedded
+/extensions
 
 # Go
 *.exe
