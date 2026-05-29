@@ -11,6 +11,28 @@ import (
 	"golang.org/x/term"
 )
 
+// State describes where the picker is in its lifecycle. It lets a parent
+// program that embeds the picker (see New) detect when the user has finished.
+type State int
+
+const (
+	// StateBrowsing means the user is still navigating and has not finished.
+	StateBrowsing State = iota
+	// StateSelected means the user confirmed a selection; read it with
+	// SelectedPath or SelectedPaths.
+	StateSelected
+	// StateCancelled means the user dismissed the picker without selecting.
+	StateCancelled
+)
+
+// DoneMsg is emitted (as a tea.Cmd result) when an embedded picker finishes,
+// so a parent program can react in its own Update. It is not sent in the
+// standalone Pick* API, which ends its own program instead.
+type DoneMsg struct {
+	State State
+	Paths []string
+}
+
 // Model is the bubbletea model for the file picker.
 type Model struct {
 	options  Options
@@ -24,7 +46,12 @@ type Model struct {
 	dir      string
 	err      error
 	quitting bool
-	chosen   bool
+	state    State
+
+	// standalone is true when the model owns its tea.Program (the Pick*
+	// one-liner API) and may therefore emit tea.Quit. When embedded in a
+	// parent program it is false: completion is signalled via DoneMsg instead.
+	standalone bool
 
 	searching  bool
 	searchTerm string
@@ -103,6 +130,7 @@ func NewModel(opts Options) Model {
 		selected:     make(map[string]struct{}),
 		dir:          startDir,
 		hiddenForced: opts.ShowHidden,
+		standalone:   !opts.Embedded,
 		width:        w,
 		height:       h,
 	}
@@ -115,10 +143,35 @@ func (m Model) Init() tea.Cmd {
 	return m.readDir()
 }
 
+// State returns the picker's lifecycle state. Embedded parents use it (or watch
+// for DoneMsg) to detect when the user has finished.
+func (m Model) State() State {
+	return m.state
+}
+
+// Done reports whether the user has finished with the picker (either selected
+// or cancelled).
+func (m Model) Done() bool {
+	return m.state != StateBrowsing
+}
+
+// finish marks the picker as finished. In standalone mode (the Pick* API) it
+// ends the program with tea.Quit; when embedded it emits a DoneMsg so the
+// parent program can react.
+func (m Model) finish(s State) (tea.Model, tea.Cmd) {
+	m.state = s
+	if m.standalone {
+		m.quitting = true
+		return m, tea.Quit
+	}
+	paths := m.SelectedPaths()
+	return m, func() tea.Msg { return DoneMsg{State: s, Paths: paths} }
+}
+
 // SelectedPath returns the single selected path after the picker closes.
 // Returns empty string if nothing was selected.
 func (m Model) SelectedPath() string {
-	if !m.chosen {
+	if m.state != StateSelected {
 		return ""
 	}
 	if m.options.Mode == ModeMultiple {
@@ -136,7 +189,7 @@ func (m Model) SelectedPath() string {
 // SelectedPaths returns all selected paths (for multi-select mode).
 // Paths are returned in sorted order for deterministic results.
 func (m Model) SelectedPaths() []string {
-	if !m.chosen {
+	if m.state != StateSelected {
 		return nil
 	}
 	if m.options.Mode == ModeMultiple {
@@ -255,8 +308,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	switch {
 	case key.Matches(msg, m.keys.Cancel):
-		m.quitting = true
-		return m, tea.Quit
+		return m.finish(StateCancelled)
 
 	case key.Matches(msg, m.keys.Up):
 		m.cursorUp()
@@ -353,14 +405,13 @@ func (m Model) handleNavigate() (tea.Model, tea.Cmd) {
 // handleSelectDir handles 's' — selects the current working directory.
 func (m Model) handleSelectDir() (tea.Model, tea.Cmd) {
 	if m.options.Mode == ModeFolder || m.options.Mode == ModeAny {
-		m.chosen = true
 		m.entries = []FileEntry{{
 			Name:  ".",
 			Path:  m.dir,
 			IsDir: true,
 		}}
 		m.cursor = 0
-		return m, tea.Quit
+		return m.finish(StateSelected)
 	}
 	return m, nil
 }
@@ -374,8 +425,7 @@ func (m Model) handleSelectionKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	switch {
 	case key.Matches(msg, m.keys.Toggle) && m.options.Mode == ModeAny:
-		m.chosen = true
-		return m, tea.Quit
+		return m.finish(StateSelected)
 
 	case key.Matches(msg, m.keys.Toggle) && m.options.Mode == ModeMultiple:
 		if _, ok := m.selected[entry.Path]; ok {
@@ -410,13 +460,11 @@ func (m Model) handleSelectionKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.dir = m.resolve(entry.Path)
 				return m, m.readDir()
 			}
-			m.chosen = true
-			return m, tea.Quit
+			return m.finish(StateSelected)
 
 		case ModeFolder:
 			if entry.IsDir {
-				m.chosen = true
-				return m, tea.Quit
+				return m.finish(StateSelected)
 			}
 
 		case ModeAny:
@@ -424,8 +472,7 @@ func (m Model) handleSelectionKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.dir = m.resolve(entry.Path)
 				return m, m.readDir()
 			}
-			m.chosen = true
-			return m, tea.Quit
+			return m.finish(StateSelected)
 
 		case ModeMultiple:
 			if entry.IsDir {
@@ -433,12 +480,10 @@ func (m Model) handleSelectionKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return m, m.readDir()
 			}
 			if len(m.selected) > 0 {
-				m.chosen = true
-				return m, tea.Quit
+				return m.finish(StateSelected)
 			}
 			m.selected[entry.Path] = struct{}{}
-			m.chosen = true
-			return m, tea.Quit
+			return m.finish(StateSelected)
 		}
 	}
 

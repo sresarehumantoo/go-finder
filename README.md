@@ -17,6 +17,7 @@ A cross-platform, terminal-based file and folder picker for Go. Works consistent
 - **Symlink expansion**: optionally resolve symlinks to real paths
 - **Pluggable filesystem**: browse any `io/fs.FS` (e.g. `embed.FS`, `fstest.MapFS`) via `WithFS` — defaults to the host OS
 - **Preview pane**: optional side pane (`WithPreview`) showing a file's head, a directory's listing, or metadata; customizable via `WithPreviewFunc`
+- **Standalone or embeddable**: one-line `PickFile()` etc., or embed the picker as a Bubble Tea sub-model with `New` (reports completion via `DoneMsg`)
 - **Smart truncation**: long paths and filenames are truncated with `…` to fit the terminal
 - **Fully customizable**: override any keybinding or visual style
 - **Vim-style navigation** (`h/j/k/l`) plus standard arrow keys
@@ -100,6 +101,37 @@ path, err := finder.PickFile(
 )
 ```
 
+### Embed in your own Bubble Tea app
+
+The `Pick*` functions run a standalone program. To embed the picker as a
+sub-model in an existing Bubble Tea program, use `New`, which returns a model in
+embedded mode: it never quits your program and reports completion via
+`finder.DoneMsg`.
+
+```go
+type parent struct{ picker finder.Model }
+
+func (m parent) Init() tea.Cmd { return m.picker.Init() }
+
+func (m parent) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+    if done, ok := msg.(finder.DoneMsg); ok {
+        if done.State == finder.StateSelected {
+            // use done.Paths
+        }
+        return m, tea.Quit // or switch to another view
+    }
+    updated, cmd := m.picker.Update(msg)
+    m.picker = updated.(finder.Model)
+    return m, cmd
+}
+
+func (m parent) View() string { return m.picker.View() }
+
+// finder.New(finder.WithMode(finder.ModeFile), finder.WithPreview(true))
+```
+
+See [`examples/embedded`](examples/embedded) for a complete program.
+
 ## Keybindings
 
 ### Navigation
@@ -171,6 +203,9 @@ go run ./examples/interactive
 
 # Custom keybindings and styles
 go run ./examples/custom
+
+# Embedded as a Bubble Tea sub-model
+go run ./examples/embedded
 ```
 
 The basic example supports flags for all options:

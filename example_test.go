@@ -72,6 +72,32 @@ func ExampleWithFS() {
 	fmt.Println("selected:", path)
 }
 
+// Embed the picker as a sub-model in your own Bubble Tea program. New returns a
+// model in embedded mode: forward messages to its Update, render with View, and
+// watch for finder.DoneMsg to read the result. The picker never quits your
+// program itself.
+func ExampleNew() {
+	picker := finder.New(
+		finder.WithMode(finder.ModeFile),
+		finder.WithTitle("Pick a file"),
+	)
+
+	// In your parent model's Update, forward messages and handle completion:
+	//
+	//	func (m parent) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	//		if done, ok := msg.(finder.DoneMsg); ok {
+	//			if done.State == finder.StateSelected {
+	//				m.result = done.Paths
+	//			}
+	//			return m, nil
+	//		}
+	//		updated, cmd := m.picker.Update(msg)
+	//		m.picker = updated.(finder.Model)
+	//		return m, cmd
+	//	}
+	_ = picker.Init()
+}
+
 // Show a preview pane beside the file list. The pane previews the highlighted
 // entry (file head, directory listing, or metadata) and is hidden automatically
 // on narrow terminals.

@@ -92,6 +92,25 @@ func PickMultiple(opts ...Option) ([]string, error) {
 	return result, nil
 }
 
+// New builds a picker Model for embedding in your own Bubble Tea program. The
+// returned model is in embedded mode: it never calls tea.Quit and instead
+// reports completion via a finder.DoneMsg (and its State method).
+//
+// Wire it like any Bubble Tea sub-model: call Init and run the returned command,
+// forward messages to Update, render with View, and watch for finder.DoneMsg
+// (or poll State) to read the result with SelectedPath / SelectedPaths.
+//
+// For a standalone picker that owns the terminal, use PickFile/PickFolder/
+// PickAny/PickMultiple instead.
+func New(opts ...Option) Model {
+	o := DefaultOptions()
+	o.Embedded = true
+	for _, fn := range opts {
+		fn(&o)
+	}
+	return NewModel(o)
+}
+
 func runPicker(opts Options) ([]string, error) {
 	m := NewModel(opts)
 

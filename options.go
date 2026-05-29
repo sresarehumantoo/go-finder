@@ -62,6 +62,11 @@ type Options struct {
 	// ranking results best-match-first. When false, search uses a plain
 	// case-insensitive substring match that preserves the original order.
 	FuzzySearch bool
+	// Embedded marks the picker as a sub-model of a larger Bubble Tea program.
+	// When set, the picker never emits tea.Quit; instead it signals completion
+	// via DoneMsg and its State() method, leaving control of the program to the
+	// parent. The Pick* one-liner API leaves this false. See New.
+	Embedded bool
 	// Preview enables a right-hand pane that previews the highlighted entry
 	// (file head, directory listing, or metadata). Off by default.
 	Preview bool
@@ -169,6 +174,15 @@ func WithInteractive(enabled bool) Option {
 func WithExpandSymlinks(enabled bool) Option {
 	return func(o *Options) {
 		o.ExpandSymlinks = enabled
+	}
+}
+
+// WithEmbedded marks the picker for embedding in a larger Bubble Tea program,
+// so it signals completion via DoneMsg / State() instead of quitting. New sets
+// this automatically; use it directly only with NewModel.
+func WithEmbedded(enabled bool) Option {
+	return func(o *Options) {
+		o.Embedded = enabled
 	}
 }
 
