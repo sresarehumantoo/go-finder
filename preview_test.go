@@ -114,6 +114,26 @@ func TestPreviewCustomFunc(t *testing.T) {
 	}
 }
 
+// TestPreviewStableHeight guards against the layout jumping as the selection
+// moves between short and long previews: the rendered view must keep a constant
+// height.
+func TestPreviewStableHeight(t *testing.T) {
+	dir := t.TempDir()
+	createFile(t, dir, "a_long.txt", strings.Repeat("x\n", 200))
+	createFile(t, dir, "b_short.txt", "one line")
+
+	m := loadPreview(t, previewOpts(dir), 100, 24)
+	tall := strings.Count(m.View(), "\n") // cursor on a_long.txt
+
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m = updated.(finder.Model)
+	short := strings.Count(m.View(), "\n") // cursor on b_short.txt
+
+	if tall != short {
+		t.Errorf("view height changed with selection (%d vs %d lines) — preview pane is jumping", tall, short)
+	}
+}
+
 func TestPreviewHiddenOnNarrowTerminal(t *testing.T) {
 	dir := t.TempDir()
 	createFile(t, dir, "note.txt", "SECRET_PREVIEW_BODY")

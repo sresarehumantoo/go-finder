@@ -61,7 +61,7 @@ func (m Model) View() string {
 	}
 
 	if prevW > 0 && prevH > 0 {
-		b.WriteString(m.renderSplit(listLines, listW, prevW))
+		b.WriteString(m.renderSplit(listLines, listW, prevW, prevH))
 	} else {
 		b.WriteString(strings.Join(listLines, "\n"))
 	}
@@ -120,11 +120,14 @@ func (m Model) View() string {
 	return b.String()
 }
 
-// renderSplit lays the file list and the preview pane out side by side.
-func (m Model) renderSplit(listLines []string, listW, prevW int) string {
-	left := lipgloss.NewStyle().Width(listW).Render(strings.Join(listLines, "\n"))
+// renderSplit lays the file list and the preview pane out side by side. Both
+// columns are pinned to prevH rows so the body's height stays constant as the
+// selection changes — otherwise the footer would jump as previews vary in
+// length.
+func (m Model) renderSplit(listLines []string, listW, prevW, prevH int) string {
+	left := lipgloss.NewStyle().Width(listW).Height(prevH).Render(strings.Join(listLines, "\n"))
 	content := m.styles.Preview.Render(strings.Join(m.previewLines, "\n"))
-	right := m.styles.PreviewBorder.Width(prevW).Render(content)
+	right := m.styles.PreviewBorder.Width(prevW).Height(prevH).Render(content)
 	return lipgloss.JoinHorizontal(lipgloss.Top, left, right)
 }
 
