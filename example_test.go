@@ -22,6 +22,18 @@ func ExamplePickFile() {
 	fmt.Println("selected:", path)
 }
 
+// Restrict the picker to a set of document extensions. Matching is
+// case-insensitive, so "Report.PDF" is shown by WithExtensions("pdf").
+func ExampleWithExtensions() {
+	path, err := finder.PickFile(
+		finder.WithExtensions("pdf", "docx", "doc"),
+	)
+	if err != nil {
+		return
+	}
+	fmt.Println("document:", path)
+}
+
 // Pick a folder, using the s key inside the picker to confirm the current
 // directory.
 func ExamplePickFolder() {

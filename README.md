@@ -104,6 +104,19 @@ paths, err := finder.PickMultiple(
 )
 ```
 
+### Restrict to document types
+
+`WithExtensions` limits the picker to a set of extensions, matched
+case-insensitively (so `Report.PDF` is included). Use it instead of
+`WithFilter("*.pdf")` when you want the common "only allow these file types"
+behavior without worrying about case:
+
+```go
+path, err := finder.PickFile(
+    finder.WithExtensions("pdf", "docx", "doc"),
+)
+```
+
 ### Interactive mode (create/delete)
 
 ```go

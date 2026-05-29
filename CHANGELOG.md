@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Extension filter** — `WithExtensions("pdf", "docx", "doc")` limits the
+  picker to a set of file extensions, matched case-insensitively (so
+  `Report.PDF` is included). Accepts values with or without a leading dot.
+  Composes with `WithFilter`: a file is shown if it matches either. This is the
+  ergonomic, case-correct path for the common "only allow these document types"
+  use case, where the case-sensitive `WithFilter("*.pdf")` glob falls short.
+
 ## [0.2.0] - 2026-05-28
 
 The biggest feature release yet: go-finder goes from a one-line picker to the

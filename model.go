@@ -226,12 +226,13 @@ func (m Model) readDir() tea.Cmd {
 	fsys := m.fsys
 	showHidden := m.options.ShowHidden
 	filters := m.options.Filters
+	extensions := m.options.Extensions
 	return func() tea.Msg {
 		raw, err := fsys.ReadDir(dir)
 		if err != nil {
 			return dirReadMsg{dir: dir, err: err}
 		}
-		entries := buildEntries(fsys, dir, raw, showHidden, filters)
+		entries := buildEntries(fsys, dir, raw, showHidden, filters, extensions)
 		return dirReadMsg{entries: entries, dir: dir}
 	}
 }

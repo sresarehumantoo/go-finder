@@ -88,7 +88,7 @@ func (m Model) buildPreview(e FileEntry, _, height int) string {
 			fmt.Fprintf(&b, "(cannot read: %v)", err)
 			return b.String()
 		}
-		children := buildEntries(m.fsys, e.Path, raw, m.options.ShowHidden, nil)
+		children := buildEntries(m.fsys, e.Path, raw, m.options.ShowHidden, nil, nil)
 		limit := height - 3
 		if limit < 1 {
 			limit = 1

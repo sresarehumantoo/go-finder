@@ -60,6 +60,22 @@ func TestWithFilter(t *testing.T) {
 	}
 }
 
+func TestWithExtensions(t *testing.T) {
+	opts := finder.DefaultOptions()
+	// Mixed input forms: bare, dotted, glob-prefixed, mixed case, and blanks.
+	finder.WithExtensions("pdf", ".DocX", "*.doc", "  ", "")(&opts)
+
+	want := []string{".pdf", ".docx", ".doc"}
+	if len(opts.Extensions) != len(want) {
+		t.Fatalf("expected %d extensions, got %d (%v)", len(want), len(opts.Extensions), opts.Extensions)
+	}
+	for i, w := range want {
+		if opts.Extensions[i] != w {
+			t.Errorf("extension %d = %q, want %q", i, opts.Extensions[i], w)
+		}
+	}
+}
+
 func TestWithHidden(t *testing.T) {
 	opts := finder.DefaultOptions()
 	finder.WithHidden(true)(&opts)

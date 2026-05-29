@@ -126,10 +126,10 @@ func cleanFSPath(p string) string {
 }
 
 // buildEntries turns raw directory entries into sorted FileEntry values,
-// applying the hidden-file and glob filters. Paths are produced via the
-// filesystem's Join so the result is correct for any backend. Directories sort
-// before files; each group is sorted case-insensitively by name.
-func buildEntries(fsys FileSystem, dir string, des []fs.DirEntry, showHidden bool, filters []string) []FileEntry {
+// applying the hidden-file, glob, and extension filters. Paths are produced via
+// the filesystem's Join so the result is correct for any backend. Directories
+// sort before files; each group is sorted case-insensitively by name.
+func buildEntries(fsys FileSystem, dir string, des []fs.DirEntry, showHidden bool, filters, extensions []string) []FileEntry {
 	var result []FileEntry
 	for _, e := range des {
 		name := e.Name()
@@ -152,7 +152,7 @@ func buildEntries(fsys FileSystem, dir string, des []fs.DirEntry, showHidden boo
 			Mode:     info.Mode(),
 		}
 
-		if !entry.IsDir && len(filters) > 0 && !matchesAnyFilter(name, filters) {
+		if !entry.IsDir && !passesFilters(name, filters, extensions) {
 			continue
 		}
 
