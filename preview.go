@@ -64,9 +64,13 @@ func (m *Model) refreshPreview() {
 
 	var text string
 	if m.options.PreviewFunc != nil {
+		// A custom PreviewFunc is trusted caller code and may emit its own ANSI
+		// styling, so its output is not sanitized. The built-in preview reads
+		// untrusted file contents and must be, preserving the line/tab structure
+		// that clipLines relies on.
 		text = m.options.PreviewFunc(e, prevW, prevH)
 	} else {
-		text = m.buildPreview(e, prevW, prevH)
+		text = sanitizeControl(m.buildPreview(e, prevW, prevH), '\n', '\t')
 	}
 	m.previewLines = clipLines(text, prevW, prevH)
 }

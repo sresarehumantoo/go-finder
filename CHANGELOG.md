@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **Terminal escape-sequence injection** — untrusted filenames and previewed
+  file contents are now stripped of control characters (C0/C1/DEL, including the
+  `ESC` that prefixes every ANSI/OSC sequence) before being rendered. Previously
+  a crafted name or file in a browsed directory could emit raw escape sequences
+  to the terminal (e.g. rewrite the window title via OSC 0, manipulate the
+  cursor to spoof the UI, or hijack the clipboard via OSC 52). A custom
+  `PreviewFunc` is trusted caller code and is left unsanitized. `validateName`
+  also now rejects control characters in interactively created names.
+
+### Fixed
+
+- Breadcrumb and filename truncation are now rune/display-width aware, so a
+  multibyte name is never sliced mid-rune into invalid UTF-8.
+
 ### Added
 
 - **Extension filter** — `WithExtensions("pdf", "docx", "doc")` limits the

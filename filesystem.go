@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"unicode"
 )
 
 // FileEntry represents a single file or directory in a listing.
@@ -196,6 +197,9 @@ func validateName(name string) error {
 	}
 	if strings.ContainsAny(name, "/\\") {
 		return errors.New("name cannot contain path separators")
+	}
+	if strings.ContainsFunc(name, unicode.IsControl) {
+		return errors.New("name cannot contain control characters")
 	}
 	return nil
 }
