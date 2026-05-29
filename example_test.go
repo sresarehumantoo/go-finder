@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing/fstest"
 
-	finder "github.com/rummage-dev/rummage"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/lipgloss"
+	finder "github.com/rummage-dev/rummage"
 )
 
 // Pick a single Go source file from the user's projects directory.

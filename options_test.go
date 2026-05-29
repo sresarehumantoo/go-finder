@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	finder "github.com/rummage-dev/rummage"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	finder "github.com/rummage-dev/rummage"
 )
 
 func TestDefaultOptions(t *testing.T) {

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	finder "github.com/rummage-dev/rummage"
 	tea "github.com/charmbracelet/bubbletea"
+	finder "github.com/rummage-dev/rummage"
 )
 
 // renderDir builds a model over dir, runs the initial directory read, and

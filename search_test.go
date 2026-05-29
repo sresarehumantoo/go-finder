@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	finder "github.com/rummage-dev/rummage"
 	tea "github.com/charmbracelet/bubbletea"
+	finder "github.com/rummage-dev/rummage"
 )
 
 func setupSearchModel(t *testing.T, dir string) finder.Model {
