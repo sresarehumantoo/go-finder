@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing/fstest"
 
-	finder "github.com/SREsAreHumanToo/go-finder"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/lipgloss"
+	finder "github.com/rummage-dev/rummage"
 )
 
 // Pick a single Go source file from the user's projects directory.
@@ -20,6 +20,18 @@ func ExamplePickFile() {
 		return
 	}
 	fmt.Println("selected:", path)
+}
+
+// Restrict the picker to a set of document extensions. Matching is
+// case-insensitive, so "Report.PDF" is shown by WithExtensions("pdf").
+func ExampleWithExtensions() {
+	path, err := finder.PickFile(
+		finder.WithExtensions("pdf", "docx", "doc"),
+	)
+	if err != nil {
+		return
+	}
+	fmt.Println("document:", path)
 }
 
 // Pick a folder, using the s key inside the picker to confirm the current

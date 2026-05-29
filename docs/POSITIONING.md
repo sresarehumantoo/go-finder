@@ -2,7 +2,7 @@
 
 *Last updated: 2026-05-28*
 
-This document captures where go-finder sits in the Go ecosystem, what makes it
+This document captures where rummage sits in the Go ecosystem, what makes it
 worth choosing, and the sequenced plan for making it a library people can find
 and rely on.
 
@@ -19,14 +19,14 @@ importable picker library with a one-line API.
 | `charmbracelet/gum file` | CLI *binary*, not importable | ❌ | ❌ (open req #603) | ❌ | ✅ (as a binary) | partial |
 | `ktr0731/go-fuzzyfinder` | fzf-style list finder (~500★) | ✅ `FindMulti` | ✅ fuzzy | ❌ | ✅ | ❌ (list finder, not a dir navigator) |
 | `promptui` / `survey` / `go-prompt` | Older prompt libs | ❌ | ❌ | ❌ | ✅ | ❌ |
-| **go-finder** | **Standalone picker library** | ✅ persists across dirs | ✅ live | ✅ | ✅ one-liner | ✅ `ModeAny` |
+| **rummage** | **Standalone picker library** | ✅ persists across dirs | ✅ live | ✅ | ✅ one-liner | ✅ `ModeAny` |
 
 ### Key takeaways
 
 1. **The gap is real.** There is no popular Go library that gives you
    `path, err := finder.PickFile()` with a full picker behind it.
    `bubbles/filepicker` is deliberately minimal and embed-only; that is the seam
-   go-finder slots into.
+   rummage slots into.
 2. **Demand for our existing features is documented in Charm's own tracker.**
    Search/fuzzy-find (huh #368, gum #603), a real directory picker (bubbles
    #547/#659), and multi-select are all unmet asks elsewhere. We already ship
@@ -128,7 +128,7 @@ Submit via a PR to [avelino/awesome-go](https://github.com/avelino/awesome-go).
 roughly 30–80 chars):
 
 ```markdown
-- [go-finder](https://github.com/SREsAreHumanToo/go-finder) - Cross-platform terminal file/folder picker with fuzzy search, multi-select, and a preview pane.
+- [rummage](https://github.com/rummage-dev/rummage) - Cross-platform terminal file/folder picker with fuzzy search, multi-select, and a preview pane.
 ```
 
 **Their contribution checklist — current status:**
@@ -142,7 +142,7 @@ roughly 30–80 chars):
 - [ ] Repo age / stars: awesome-go expects a project that isn't brand-new and
       has some traction — file the PR once the repo has a tagged release and a
       little history.
-- [ ] Add go-finder to the awesome-go PR description's required coverage/age note.
+- [ ] Add rummage to the awesome-go PR description's required coverage/age note.
 
 **Blocker to clear first:** tag a release on `main` (see [release flow](#)) so the
 submission points at a stable, versioned module.

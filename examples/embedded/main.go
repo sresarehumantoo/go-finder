@@ -13,8 +13,8 @@ import (
 	"fmt"
 	"os"
 
-	finder "github.com/SREsAreHumanToo/go-finder"
 	tea "github.com/charmbracelet/bubbletea"
+	finder "github.com/rummage-dev/rummage"
 )
 
 type model struct {

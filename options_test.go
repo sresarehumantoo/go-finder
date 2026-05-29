@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	finder "github.com/SREsAreHumanToo/go-finder"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	finder "github.com/rummage-dev/rummage"
 )
 
 func TestDefaultOptions(t *testing.T) {
@@ -57,6 +57,22 @@ func TestWithFilter(t *testing.T) {
 	}
 	if opts.Filters[0] != "*.go" || opts.Filters[1] != "*.txt" {
 		t.Errorf("unexpected filters: %v", opts.Filters)
+	}
+}
+
+func TestWithExtensions(t *testing.T) {
+	opts := finder.DefaultOptions()
+	// Mixed input forms: bare, dotted, glob-prefixed, mixed case, and blanks.
+	finder.WithExtensions("pdf", ".DocX", "*.doc", "  ", "")(&opts)
+
+	want := []string{".pdf", ".docx", ".doc"}
+	if len(opts.Extensions) != len(want) {
+		t.Fatalf("expected %d extensions, got %d (%v)", len(want), len(opts.Extensions), opts.Extensions)
+	}
+	for i, w := range want {
+		if opts.Extensions[i] != w {
+			t.Errorf("extension %d = %q, want %q", i, opts.Extensions[i], w)
+		}
 	}
 }
 

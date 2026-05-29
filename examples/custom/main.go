@@ -12,7 +12,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/lipgloss"
 
-	finder "github.com/SREsAreHumanToo/go-finder"
+	finder "github.com/rummage-dev/rummage"
 )
 
 func main() {

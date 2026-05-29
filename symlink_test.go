@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	finder "github.com/SREsAreHumanToo/go-finder"
 	tea "github.com/charmbracelet/bubbletea"
+	finder "github.com/rummage-dev/rummage"
 )
 
 func TestExpandSymlinksStartDir(t *testing.T) {

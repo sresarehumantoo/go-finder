@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // Mode defines the picker operation mode.
@@ -41,8 +42,14 @@ type Options struct {
 	// StartDir is the initial directory shown in the picker.
 	StartDir string
 	// Filters is a list of glob patterns to filter visible files (e.g. "*.go", "*.txt").
-	// Empty means show all files.
+	// Matching is case-sensitive (see filepath.Match). Empty means show all files.
 	Filters []string
+	// Extensions limits visible files to the given extensions, matched
+	// case-insensitively (e.g. ".pdf", ".docx"). Values are normalized to a
+	// lowercase leading-dot form. Empty means no extension restriction. When
+	// both Filters and Extensions are set, a file is shown if it matches
+	// either one.
+	Extensions []string
 	// ShowHidden controls whether dotfiles/dotfolders are displayed.
 	ShowHidden bool
 	// Mode determines the picker behavior (file, folder, or multi-select).
@@ -129,6 +136,28 @@ func WithStartDir(dir string) Option {
 func WithFilter(patterns ...string) Option {
 	return func(o *Options) {
 		o.Filters = append(o.Filters, patterns...)
+	}
+}
+
+// WithExtensions limits visible files to the given extensions, matched
+// case-insensitively. Extensions may be given with or without a leading dot
+// ("pdf" or ".pdf"), and an optional leading glob star is tolerated ("*.pdf"),
+// so a file named "Report.PDF" is shown by WithExtensions("pdf"). Directories
+// are always shown regardless of extensions. Blank entries are ignored.
+//
+// WithExtensions composes with WithFilter: when both are set, a file is shown
+// if it matches either the glob patterns or the extensions.
+func WithExtensions(exts ...string) Option {
+	return func(o *Options) {
+		for _, ext := range exts {
+			ext = strings.TrimSpace(ext)
+			ext = strings.TrimPrefix(ext, "*")
+			ext = strings.TrimPrefix(ext, ".")
+			if ext == "" {
+				continue
+			}
+			o.Extensions = append(o.Extensions, "."+strings.ToLower(ext))
+		}
 	}
 }
 

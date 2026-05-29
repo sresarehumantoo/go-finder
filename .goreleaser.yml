@@ -5,9 +5,9 @@ before:
     - go mod tidy
 
 builds:
-  - id: go-finder
+  - id: rummage
     main: ./examples/basic
-    binary: go-finder
+    binary: rummage
     env:
       - CGO_ENABLED=0
     flags:
@@ -59,13 +59,13 @@ release:
   draft: false
   prerelease: auto
   header: |
-    ## go-finder {{ .Tag }}
+    ## rummage {{ .Tag }}
 
     Binaries below are the **basic example program** (cross-compiled demos
     of the picker). To use the library in your own code, run:
 
     ```bash
-    go get github.com/SREsAreHumanToo/go-finder@{{ .Tag }}
+    go get github.com/rummage-dev/rummage@{{ .Tag }}
     ```
   footer: |
-    **Full changelog:** https://github.com/SREsAreHumanToo/go-finder/compare/{{ .PreviousTag }}...{{ .Tag }}
+    **Full changelog:** https://github.com/rummage-dev/rummage/compare/{{ .PreviousTag }}...{{ .Tag }}

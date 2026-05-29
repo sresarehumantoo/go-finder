@@ -3,7 +3,7 @@
 ## Import
 
 ```go
-import finder "github.com/SREsAreHumanToo/go-finder"
+import finder "github.com/rummage-dev/rummage"
 ```
 
 ## Public Functions
@@ -46,6 +46,16 @@ paths, err := finder.PickMultiple(
 )
 ```
 
+To restrict the picker to a set of document types — the common "only allow
+`.pdf`, `.docx`, `.doc`" case — use `WithExtensions`, which matches
+case-insensitively so `Report.PDF` is included:
+
+```go
+path, err := finder.Pick(
+    finder.WithExtensions("pdf", "docx", "doc"),
+)
+```
+
 ## Options
 
 All option functions follow the functional options pattern.
@@ -53,7 +63,8 @@ All option functions follow the functional options pattern.
 | Function | Description | Default |
 |---|---|---|
 | `WithStartDir(dir string)` | Set starting directory | Current working directory |
-| `WithFilter(patterns ...string)` | Glob patterns to filter files (dirs always shown) | Show all files |
+| `WithFilter(patterns ...string)` | Glob patterns to filter files, case-sensitive (dirs always shown) | Show all files |
+| `WithExtensions(exts ...string)` | Limit files to these extensions, case-insensitive; accepts `"pdf"` or `".pdf"` (dirs always shown) | Show all files |
 | `WithHidden(show bool)` | Show hidden files (force-on disables toggle key) | `false` |
 | `WithTitle(title string)` | Header text | Mode-dependent |
 | `WithHeight(h int)` | Max visible rows (0 = auto) | `0` |

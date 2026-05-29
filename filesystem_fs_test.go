@@ -6,8 +6,8 @@ import (
 	"testing"
 	"testing/fstest"
 
-	finder "github.com/SREsAreHumanToo/go-finder"
 	tea "github.com/charmbracelet/bubbletea"
+	finder "github.com/rummage-dev/rummage"
 )
 
 func sampleFS() fstest.MapFS {

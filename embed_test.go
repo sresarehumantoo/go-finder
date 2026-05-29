@@ -3,8 +3,8 @@ package finder_test
 import (
 	"testing"
 
-	finder "github.com/SREsAreHumanToo/go-finder"
 	tea "github.com/charmbracelet/bubbletea"
+	finder "github.com/rummage-dev/rummage"
 )
 
 // loadEmbedded builds an embedded picker over dir and loads its entries.

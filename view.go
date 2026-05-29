@@ -3,6 +3,7 @@ package finder
 import (
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -18,10 +19,10 @@ func (m Model) View() string {
 	b.WriteString(m.styles.Title.Render(truncate(m.options.Title, m.width)))
 	b.WriteString("\n")
 
-	displayDir := m.fsys.Display(m.dir)
+	displayDir := sanitizeControl(m.fsys.Display(m.dir))
 	maxPath := m.width - 4
-	if maxPath > 0 && len(displayDir) > maxPath {
-		displayDir = "…" + displayDir[len(displayDir)-maxPath+1:]
+	if maxPath > 0 && lipgloss.Width(displayDir) > maxPath {
+		displayDir = "…" + truncateTail(displayDir, maxPath-1)
 	}
 	b.WriteString(m.styles.Path.Render(displayDir))
 	b.WriteString("\n")
@@ -81,7 +82,7 @@ func (m Model) View() string {
 
 	if m.searching {
 		b.WriteString(m.styles.SearchPrompt.Render("/"))
-		b.WriteString(m.styles.SearchText.Render(m.searchTerm))
+		b.WriteString(m.styles.SearchText.Render(sanitizeControl(m.searchTerm)))
 		b.WriteString(m.styles.SearchPrompt.Render("_"))
 		b.WriteString("\n")
 	}
@@ -89,17 +90,17 @@ func (m Model) View() string {
 	switch m.inputMode {
 	case inputNewFile:
 		b.WriteString(m.styles.SearchPrompt.Render("  New file: "))
-		b.WriteString(m.styles.SearchText.Render(m.inputText))
+		b.WriteString(m.styles.SearchText.Render(sanitizeControl(m.inputText)))
 		b.WriteString(m.styles.SearchPrompt.Render("_"))
 		b.WriteString("\n")
 	case inputNewFolder:
 		b.WriteString(m.styles.SearchPrompt.Render("  New folder: "))
-		b.WriteString(m.styles.SearchText.Render(m.inputText))
+		b.WriteString(m.styles.SearchText.Render(sanitizeControl(m.inputText)))
 		b.WriteString(m.styles.SearchPrompt.Render("_"))
 		b.WriteString("\n")
 	case inputConfirmDelete:
 		if m.cursor >= 0 && m.cursor < len(m.entries) {
-			name := m.entries[m.cursor].Name
+			name := sanitizeControl(m.entries[m.cursor].Name)
 			if m.entries[m.cursor].IsDir {
 				name += "/"
 			}
@@ -111,7 +112,7 @@ func (m Model) View() string {
 	}
 
 	if m.statusMsg != "" {
-		b.WriteString(m.styles.Cursor.Render("  " + m.statusMsg))
+		b.WriteString(m.styles.Cursor.Render("  " + sanitizeControl(m.statusMsg)))
 		b.WriteString("\n")
 	}
 
@@ -158,6 +159,63 @@ func truncate(s string, width int) string {
 	return b.String()
 }
 
+// truncateTail returns the trailing portion of s that fits within width display
+// cells, appending nothing. It is rune-aware so multibyte runes are never split
+// (the byte-offset variant could emit invalid UTF-8). Used for the breadcrumb,
+// which is truncated from the left so the deepest directory stays visible.
+func truncateTail(s string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+	r := []rune(s)
+	used := 0
+	i := len(r)
+	for i > 0 {
+		rw := lipgloss.Width(string(r[i-1]))
+		if used+rw > width {
+			break
+		}
+		used += rw
+		i--
+	}
+	return string(r[i:])
+}
+
+// sanitizeControl defuses terminal escape/control-sequence injection from
+// untrusted input (filenames and file contents are attacker-controlled when the
+// picker browses directories the user did not author). It replaces every
+// control character — C0 (0x00–0x1F), DEL (0x7F), and C1 (0x80–0x9F), which
+// unicode.IsControl covers — with '?'. The replacement is single-byte, so for
+// legitimate names (which contain no control characters) this is a no-op and
+// byte offsets used elsewhere, e.g. fuzzy-match highlighting, stay aligned.
+//
+// Runes listed in keep are passed through unchanged; callers preserve '\n' and
+// '\t' for multi-line preview text, which clipLines handles separately.
+func sanitizeControl(s string, keep ...rune) string {
+	if !strings.ContainsFunc(s, func(r rune) bool { return isUnsafeRune(r, keep) }) {
+		return s // fast path: the common case has nothing to sanitize
+	}
+	var b strings.Builder
+	b.Grow(len(s))
+	for _, r := range s {
+		if isUnsafeRune(r, keep) {
+			b.WriteByte('?')
+		} else {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+func isUnsafeRune(r rune, keep []rune) bool {
+	for _, k := range keep {
+		if r == k {
+			return false
+		}
+	}
+	return unicode.IsControl(r)
+}
+
 // renderSplit lays the file list and the preview pane out side by side. Both
 // columns are pinned to prevH rows so the body's height stays constant as the
 // selection changes — otherwise the footer would jump as previews vary in
@@ -195,13 +253,11 @@ func (m Model) renderEntry(e FileEntry, isCursor, isSelected bool, width int, ma
 		maxName = 10
 	}
 
-	displayName := e.Name
+	displayName := sanitizeControl(e.Name)
 	if e.IsDir {
 		displayName += "/"
 	}
-	if len(displayName) > maxName {
-		displayName = displayName[:maxName-1] + "…"
-	}
+	displayName = truncate(displayName, maxName)
 
 	var baseStyle lipgloss.Style
 	switch {

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"unicode"
 )
 
 // FileEntry represents a single file or directory in a listing.
@@ -27,7 +28,7 @@ func ReadDir(dir string, showHidden bool, filters []string) ([]FileEntry, error)
 	if err != nil {
 		return nil, err
 	}
-	return buildEntries(osFS{}, dir, entries, showHidden, filters), nil
+	return buildEntries(osFS{}, dir, entries, showHidden, filters, nil), nil
 }
 
 // ParentDir returns the parent directory of the given path.
@@ -197,6 +198,9 @@ func validateName(name string) error {
 	if strings.ContainsAny(name, "/\\") {
 		return errors.New("name cannot contain path separators")
 	}
+	if strings.ContainsFunc(name, unicode.IsControl) {
+		return errors.New("name cannot contain control characters")
+	}
 	return nil
 }
 
@@ -233,6 +237,29 @@ func matchesAnyFilter(name string, filters []string) bool {
 		}
 	}
 	return false
+}
+
+// matchesAnyExtension reports whether the file name carries one of the given
+// extensions, compared case-insensitively. Extensions are expected in
+// normalized lowercase leading-dot form (see WithExtensions).
+func matchesAnyExtension(name string, extensions []string) bool {
+	ext := strings.ToLower(filepath.Ext(name))
+	for _, want := range extensions {
+		if ext == want {
+			return true
+		}
+	}
+	return false
+}
+
+// passesFilters reports whether a file name should be visible given the glob
+// filters and extension restrictions. With neither set, every file passes;
+// otherwise the file must match at least one filter or extension.
+func passesFilters(name string, filters, extensions []string) bool {
+	if len(filters) == 0 && len(extensions) == 0 {
+		return true
+	}
+	return matchesAnyFilter(name, filters) || matchesAnyExtension(name, extensions)
 }
 
 // expandHome expands a leading ~ to the user's home directory.

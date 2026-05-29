@@ -2,7 +2,7 @@
 
 ## Overview
 
-go-finder is a cross-platform, terminal-based file and folder picker built on the [Bubble Tea](https://github.com/charmbracelet/bubbletea) TUI framework. It provides a simple blocking API that spawns an interactive terminal UI and returns the user's selection.
+rummage is a cross-platform, terminal-based file and folder picker built on the [Bubble Tea](https://github.com/charmbracelet/bubbletea) TUI framework. It provides a simple blocking API that spawns an interactive terminal UI and returns the user's selection.
 
 ## Design Decisions
 

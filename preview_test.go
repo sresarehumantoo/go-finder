@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	finder "github.com/SREsAreHumanToo/go-finder"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	finder "github.com/rummage-dev/rummage"
 )
 
 // loadPreview builds a model, sizes the terminal, and loads the start dir.
