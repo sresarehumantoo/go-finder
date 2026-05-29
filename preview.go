@@ -113,7 +113,7 @@ func (m Model) buildPreview(e FileEntry, _, height int) string {
 		fmt.Fprintf(&b, "(cannot preview: %v)", err)
 		return b.String()
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	data, err := io.ReadAll(io.LimitReader(f, previewMaxBytes))
 	if err != nil {
