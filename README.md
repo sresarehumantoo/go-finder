@@ -272,6 +272,25 @@ go run ./examples/basic -expand -dir ~/symlink
 - Go 1.25+
 - A terminal with ANSI escape code support (virtually all modern terminals)
 
+## Acknowledgments
+
+rummage stands on the shoulders of the excellent [Charm](https://charm.sh)
+ecosystem and a few other great libraries:
+
+- **[Bubble Tea](https://github.com/charmbracelet/bubbletea)** — the Elm-style
+  TUI framework rummage is built on.
+- **[Lip Gloss](https://github.com/charmbracelet/lipgloss)** — all styling and
+  layout.
+- **[Bubbles](https://github.com/charmbracelet/bubbles)** — its `key` package
+  powers the overridable keybindings.
+- **[sahilm/fuzzy](https://github.com/sahilm/fuzzy)** — scored fuzzy matching
+  and match highlighting for search (the same matcher `bubbles/list` uses).
+- **[golang.org/x/term](https://pkg.go.dev/golang.org/x/term)** — terminal size
+  and capability detection.
+
+A huge thank-you to [Charm](https://github.com/charmbracelet) for making
+terminal UIs in Go a joy.
+
 ## License
 
 MIT - see [LICENSE](LICENSE) for details.
