@@ -1,11 +1,13 @@
 # go-finder
 
+> A **TUI file picker, file explorer, and fuzzy finder for Go** — browse, search, and select files or folders from the terminal.
+
 [![CI](https://github.com/SREsAreHumanToo/go-finder/actions/workflows/ci.yml/badge.svg)](https://github.com/SREsAreHumanToo/go-finder/actions/workflows/ci.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/SREsAreHumanToo/go-finder.svg)](https://pkg.go.dev/github.com/SREsAreHumanToo/go-finder)
 [![Go Report Card](https://goreportcard.com/badge/github.com/SREsAreHumanToo/go-finder)](https://goreportcard.com/report/github.com/SREsAreHumanToo/go-finder)
 [![codecov](https://codecov.io/gh/SREsAreHumanToo/go-finder/graph/badge.svg)](https://codecov.io/gh/SREsAreHumanToo/go-finder)
 
-A cross-platform, terminal-based file and folder picker for Go. Works consistently across Windows, macOS, Linux, BSD, WSL, and Git Bash with zero OS-specific dependencies.
+A cross-platform, terminal-based (TUI) file and folder picker, explorer, and fuzzy finder for Go. Works consistently across Windows, macOS, Linux, BSD, WSL, and Git Bash with zero OS-specific dependencies.
 
 ```go
 path, err := finder.PickFile()   // one import, one line
@@ -236,6 +238,9 @@ go run ./examples/folder
 
 # Multi-select with filters
 go run ./examples/multi
+
+# Restrict to file extensions (case-insensitive, opt-in)
+go run ./examples/extensions
 
 # Interactive mode (create/delete)
 go run ./examples/interactive
