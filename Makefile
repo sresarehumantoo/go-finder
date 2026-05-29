@@ -1,4 +1,4 @@
-.PHONY: build test clean run lint fmt vet build-all
+.PHONY: build test clean run lint fmt vet build-all demos
 
 # Output directory
 BIN_DIR := bin
@@ -78,6 +78,36 @@ vet:
 # Lint (requires golangci-lint)
 lint:
 	golangci-lint run ./...
+
+# Regenerate the README demo GIFs (and PNG stills) with VHS.
+# Requires vhs (https://github.com/charmbracelet/vhs), which needs ffmpeg + ttyd.
+#   go install github.com/charmbracelet/vhs@latest
+# Builds the `basic` example, generates a deterministic sandbox to browse, runs
+# every docs/demo/*.tape, then removes the sandbox. Outputs land in docs/demo/.
+demos:
+	@set -e; \
+	vhs_bin="$$(command -v vhs 2>/dev/null || true)"; \
+	if [ -z "$$vhs_bin" ]; then \
+		gobin="$$(go env GOBIN)"; [ -z "$$gobin" ] && gobin="$$(go env GOPATH)/bin"; \
+		[ -x "$$gobin/vhs" ] && vhs_bin="$$gobin/vhs"; \
+	fi; \
+	if [ -z "$$vhs_bin" ]; then \
+		echo "vhs not found. Install it (needs ffmpeg + ttyd):"; \
+		echo "  go install github.com/charmbracelet/vhs@latest"; \
+		echo "  (then ensure \"\$$(go env GOPATH)/bin\" is on your PATH)"; \
+		echo "  https://github.com/charmbracelet/vhs#installation"; \
+		exit 1; \
+	fi; \
+	echo "using vhs: $$vhs_bin"; \
+	mkdir -p $(BIN_DIR); \
+	go build -o $(BIN_DIR)/basic ./examples/basic; \
+	for tape in docs/demo/*.tape; do \
+		echo "==> $$tape"; \
+		bash docs/demo/fixture.sh >/dev/null; \
+		"$$vhs_bin" "$$tape"; \
+	done; \
+	rm -rf /tmp/rummage-demo; \
+	echo "Demos written to docs/demo/ (*.gif and *.png)"
 
 # Clean build artifacts
 clean:
