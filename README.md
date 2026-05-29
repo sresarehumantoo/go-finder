@@ -1,6 +1,6 @@
 # go-finder
 
-> A **TUI file picker, file explorer, and fuzzy finder for Go** — browse, search, and select files or folders from the terminal.
+> A **TUI file picker, file explorer, and fuzzy finder for Go!** Browse, search, and select files or folders from the terminal like the ultimate superuser you are.
 
 [![CI](https://github.com/SREsAreHumanToo/go-finder/actions/workflows/ci.yml/badge.svg)](https://github.com/SREsAreHumanToo/go-finder/actions/workflows/ci.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/SREsAreHumanToo/go-finder.svg)](https://pkg.go.dev/github.com/SREsAreHumanToo/go-finder)
