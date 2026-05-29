@@ -223,6 +223,13 @@ type helpBinding struct {
 }
 
 func (m Model) renderHelp() string {
+	return strings.Join(m.helpLines(), "\n")
+}
+
+// helpLines builds the help bar, wrapped to the terminal width, returning one
+// string per line. visibleRows uses its length to size the file list so the
+// view never overflows the terminal when the help bar wraps.
+func (m Model) helpLines() []string {
 	var bindings []helpBinding
 
 	switch m.options.Mode {
@@ -326,5 +333,5 @@ func (m Model) renderHelp() string {
 		lines = append(lines, currentLine)
 	}
 
-	return strings.Join(lines, "\n")
+	return lines
 }

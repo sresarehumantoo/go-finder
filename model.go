@@ -740,8 +740,25 @@ func (m *Model) fixOffset() {
 }
 
 func (m Model) visibleRows() int {
-	reserved := 8
-	h := m.height - reserved
+	// Account for the chrome around the file list so the view never exceeds the
+	// terminal height (which would make it scroll/jump on every repaint).
+	// Base chrome: title (2 lines) + path (2) + status counter (1), plus one
+	// blank bottom row so a full screen does not make the terminal scroll. Some
+	// elements are conditional and the help bar wraps with width, so its height
+	// is measured rather than assumed.
+	chrome := 7
+	if m.options.Mode == ModeFolder || m.options.Mode == ModeAny {
+		chrome++ // "press s to select" hint
+	}
+	if m.searching {
+		chrome++ // search prompt line
+	}
+	if m.inputMode != inputNone {
+		chrome++ // new file/folder or delete-confirm prompt line
+	}
+	chrome += len(m.helpLines())
+
+	h := m.height - chrome
 	if m.options.Height > 0 && m.options.Height < h {
 		h = m.options.Height
 	}

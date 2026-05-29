@@ -1,6 +1,7 @@
 package finder_test
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -131,6 +132,35 @@ func TestPreviewStableHeight(t *testing.T) {
 
 	if tall != short {
 		t.Errorf("view height changed with selection (%d vs %d lines) — preview pane is jumping", tall, short)
+	}
+}
+
+// TestPreviewFitsTerminalWhileScrolling reproduces the "jumping" report: with a
+// scrollable list and a narrow terminal (where the help bar wraps), holding the
+// down arrow must not produce frames taller than the terminal, and the frame
+// height must stay constant.
+func TestPreviewFitsTerminalWhileScrolling(t *testing.T) {
+	dir := t.TempDir()
+	for i := 0; i < 40; i++ {
+		// Vary content length so previews differ in height.
+		body := strings.Repeat("x\n", (i*9)%150)
+		createFile(t, dir, fmt.Sprintf("file_%02d.txt", i), body)
+	}
+
+	const height = 24
+	m := loadPreview(t, previewOpts(dir), 60, height) // narrow → help bar wraps
+
+	first := strings.Count(m.View(), "\n") + 1
+	for i := 0; i < 40; i++ {
+		n := strings.Count(m.View(), "\n") + 1
+		if n > height {
+			t.Fatalf("frame %d is %d lines, exceeds terminal height %d (would scroll/jump)", i, n, height)
+		}
+		if n != first {
+			t.Fatalf("frame %d height %d != initial %d (layout jumping)", i, n, first)
+		}
+		updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyDown})
+		m = updated.(finder.Model)
 	}
 }
 
