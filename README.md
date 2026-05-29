@@ -7,6 +7,10 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/rummage-dev/rummage)](https://goreportcard.com/report/github.com/rummage-dev/rummage)
 [![codecov](https://codecov.io/gh/rummage-dev/rummage/graph/badge.svg)](https://codecov.io/gh/rummage-dev/rummage)
 
+<p align="center">
+  <img src="docs/demo/hero.gif" alt="rummage demo: fuzzy-searching files with live match highlighting and a side preview pane, then selecting one — all from the terminal" width="800">
+</p>
+
 A cross-platform, terminal-based (TUI) file and folder picker, explorer, and fuzzy finder for Go. Works consistently across Windows, macOS, Linux, BSD, WSL, and Git Bash with zero OS-specific dependencies.
 
 ```go
@@ -34,6 +38,22 @@ Tea sub-model when you want full control.
 | Custom `io/fs.FS` backend | ✅ | ❌ | ❌ | ➖ |
 
 See [`docs/POSITIONING.md`](docs/POSITIONING.md) for the full landscape analysis.
+
+## See it in action
+
+**Preview pane** — a file's head, a directory's listing, or metadata, beside the cursor:
+
+<img src="docs/demo/preview.png" alt="rummage preview pane showing a README's contents beside the directory list" width="760">
+
+**Multi-select across directories** — toggle with `space`/`tab`; selections persist as you navigate in and out of folders:
+
+<img src="docs/demo/multi.png" alt="rummage multi-select with two files checked and a '2 selected' counter" width="760">
+
+**Interactive create / delete** — make files and folders (or delete entries) without leaving the picker (`n` / `N` / `d`):
+
+<img src="docs/demo/interactive.png" alt="rummage interactive mode after creating a new file" width="760">
+
+> All recordings are reproducible — run `make demos` to regenerate them (see [`docs/demo/`](docs/demo)).
 
 ## Features
 
