@@ -8,6 +8,7 @@ import (
 
 	finder "github.com/SREsAreHumanToo/go-finder"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 // loadPreview builds a model, sizes the terminal, and loads the start dir.
@@ -161,6 +162,42 @@ func TestPreviewFitsTerminalWhileScrolling(t *testing.T) {
 		}
 		updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyDown})
 		m = updated.(finder.Model)
+	}
+}
+
+// TestViewNeverWrapsOrOverflows guards the terminal-corruption fix: no rendered
+// line may exceed the terminal width (which the terminal would wrap into extra
+// rows, e.g. a long title), and the frame must not exceed the terminal height —
+// at any size, including very small ones.
+func TestViewNeverWrapsOrOverflows(t *testing.T) {
+	dir := t.TempDir()
+	for i := 0; i < 40; i++ {
+		createFile(t, dir, fmt.Sprintf("file_%02d.txt", i), strings.Repeat("x\n", (i*9)%150))
+	}
+
+	sizes := []struct{ w, h int }{{100, 24}, {60, 24}, {40, 20}, {30, 15}}
+	for _, s := range sizes {
+		opts := previewOpts(dir)
+		opts.Title = "Pick a file (→/l to enter dirs, / to search)" // long, multibyte
+		m := finder.NewModel(opts)
+		u, _ := m.Update(tea.WindowSizeMsg{Width: s.w, Height: s.h})
+		m = u.(finder.Model)
+		u, _ = m.Update(m.Init()())
+		m = u.(finder.Model)
+
+		for i := 0; i < 40; i++ {
+			lines := strings.Split(m.View(), "\n")
+			if len(lines) > s.h {
+				t.Errorf("%dx%d frame %d: %d rows exceeds height %d", s.w, s.h, i, len(lines), s.h)
+			}
+			for _, ln := range lines {
+				if w := lipgloss.Width(ln); w > s.w {
+					t.Errorf("%dx%d frame %d: line width %d exceeds %d: %q", s.w, s.h, i, w, s.w, ln)
+				}
+			}
+			u, _ := m.Update(tea.KeyMsg{Type: tea.KeyDown})
+			m = u.(finder.Model)
+		}
 	}
 }
 

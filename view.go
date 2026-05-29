@@ -15,7 +15,7 @@ func (m Model) View() string {
 
 	var b strings.Builder
 
-	b.WriteString(m.styles.Title.Render(m.options.Title))
+	b.WriteString(m.styles.Title.Render(truncate(m.options.Title, m.width)))
 	b.WriteString("\n")
 
 	displayDir := m.fsys.Display(m.dir)
@@ -34,7 +34,7 @@ func (m Model) View() string {
 	if m.err != nil {
 		b.WriteString(m.styles.Cursor.Render(fmt.Sprintf("Error: %v", m.err)))
 		b.WriteString("\n")
-		return b.String()
+		return m.clampView(b.String())
 	}
 
 	listW, prevW, prevH := m.layout()
@@ -117,6 +117,44 @@ func (m Model) View() string {
 
 	b.WriteString(m.renderHelp())
 
+	return m.clampView(b.String())
+}
+
+// clampView hard-limits the rendered view to the terminal dimensions: each line
+// is truncated to the width and the whole frame to the height. This guarantees
+// no line wraps and the frame never exceeds the screen — which would otherwise
+// make the terminal scroll and corrupt the display on every repaint.
+func (m Model) clampView(s string) string {
+	if m.width <= 0 || m.height <= 0 {
+		return s
+	}
+	return lipgloss.NewStyle().MaxWidth(m.width).MaxHeight(m.height).Render(s)
+}
+
+// truncate shortens s to fit width display cells, appending an ellipsis when
+// shortened. It is width-aware (counts display cells, not bytes) so it handles
+// multibyte runes such as arrows in titles.
+func truncate(s string, width int) string {
+	if width <= 0 {
+		return s
+	}
+	if lipgloss.Width(s) <= width {
+		return s
+	}
+	if width == 1 {
+		return "…"
+	}
+	var b strings.Builder
+	used := 0
+	for _, r := range s {
+		rw := lipgloss.Width(string(r))
+		if used+rw > width-1 {
+			break
+		}
+		b.WriteRune(r)
+		used += rw
+	}
+	b.WriteString("…")
 	return b.String()
 }
 
