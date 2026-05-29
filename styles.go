@@ -24,6 +24,7 @@ type Styles struct {
 	Border        lipgloss.Style
 	Preview       lipgloss.Style
 	PreviewBorder lipgloss.Style
+	Match         lipgloss.Style
 }
 
 // DefaultStyles returns the default color scheme and styling.
@@ -105,5 +106,9 @@ func DefaultStyles() Styles {
 			Border(lipgloss.NormalBorder(), false, false, false, true).
 			BorderForeground(lipgloss.Color("62")).
 			PaddingLeft(1),
+
+		Match: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("214")).
+			Bold(true),
 	}
 }

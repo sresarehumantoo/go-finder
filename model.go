@@ -56,6 +56,9 @@ type Model struct {
 	searching  bool
 	searchTerm string
 	allEntries []FileEntry
+	// matchIdx maps an entry path to the byte offsets of its fuzzy-matched
+	// characters, used to highlight matches while searching.
+	matchIdx map[string][]int
 
 	inputMode inputModeType
 	inputText string
@@ -639,6 +642,7 @@ func (m Model) handleDeleteConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // With fuzzy search enabled (the default), matches are ranked best-match-first;
 // otherwise a case-insensitive substring match preserves the original order.
 func (m *Model) filterEntries() {
+	m.matchIdx = nil
 	if m.searchTerm == "" {
 		m.entries = m.allEntries
 		m.cursor = 0
@@ -654,7 +658,8 @@ func (m *Model) filterEntries() {
 	m.offset = 0
 }
 
-// filterFuzzy ranks entries by fuzzy match score against the search term.
+// filterFuzzy ranks entries by fuzzy match score against the search term and
+// records the matched character offsets for highlighting.
 func (m *Model) filterFuzzy() {
 	names := make([]string, len(m.allEntries))
 	for i, e := range m.allEntries {
@@ -662,8 +667,11 @@ func (m *Model) filterFuzzy() {
 	}
 	matches := fuzzy.Find(m.searchTerm, names)
 	filtered := make([]FileEntry, 0, len(matches))
+	m.matchIdx = make(map[string][]int, len(matches))
 	for _, mt := range matches {
-		filtered = append(filtered, m.allEntries[mt.Index])
+		e := m.allEntries[mt.Index]
+		filtered = append(filtered, e)
+		m.matchIdx[e.Path] = mt.MatchedIndexes
 	}
 	m.entries = filtered
 }

@@ -53,7 +53,11 @@ func (m Model) View() string {
 		entry := m.entries[i]
 		isCursor := i == m.cursor
 		_, isSelected := m.selected[entry.Path]
-		listLines = append(listLines, m.renderEntry(entry, isCursor, isSelected, listW))
+		var matched []int
+		if m.searching {
+			matched = m.matchIdx[entry.Path]
+		}
+		listLines = append(listLines, m.renderEntry(entry, isCursor, isSelected, listW, matched))
 	}
 
 	if prevW > 0 && prevH > 0 {
@@ -124,7 +128,7 @@ func (m Model) renderSplit(listLines []string, listW, prevW int) string {
 	return lipgloss.JoinHorizontal(lipgloss.Top, left, right)
 }
 
-func (m Model) renderEntry(e FileEntry, isCursor, isSelected bool, width int) string {
+func (m Model) renderEntry(e FileEntry, isCursor, isSelected bool, width int, matched []int) string {
 	var prefix string
 	if isCursor {
 		prefix = m.styles.Cursor.Render("> ")
@@ -158,23 +162,25 @@ func (m Model) renderEntry(e FileEntry, isCursor, isSelected bool, width int) st
 		displayName = displayName[:maxName-1] + "…"
 	}
 
+	var baseStyle lipgloss.Style
+	switch {
+	case isSelected:
+		baseStyle = m.styles.Selected
+	case e.IsDir && e.IsHidden:
+		baseStyle = m.styles.HiddenDir
+	case e.IsDir:
+		baseStyle = m.styles.Directory
+	case e.IsHidden:
+		baseStyle = m.styles.HiddenFile
+	default:
+		baseStyle = m.styles.File
+	}
+
 	var name string
-	if e.IsDir {
-		if isSelected {
-			name = m.styles.Selected.Render(displayName)
-		} else if e.IsHidden {
-			name = m.styles.HiddenDir.Render(displayName)
-		} else {
-			name = m.styles.Directory.Render(displayName)
-		}
+	if len(matched) > 0 && !isSelected {
+		name = highlightName(displayName, baseStyle, m.styles.Match, matched)
 	} else {
-		if isSelected {
-			name = m.styles.Selected.Render(displayName)
-		} else if e.IsHidden {
-			name = m.styles.HiddenFile.Render(displayName)
-		} else {
-			name = m.styles.File.Render(displayName)
-		}
+		name = baseStyle.Render(displayName)
 	}
 
 	var size string
@@ -185,6 +191,26 @@ func (m Model) renderEntry(e FileEntry, isCursor, isSelected bool, width int) st
 	}
 
 	return prefix + marker + name + "  " + size
+}
+
+// highlightName renders s with matched characters in the match style and the
+// rest in the base style. matched holds byte offsets into the original name (as
+// returned by the fuzzy matcher); offsets beyond the displayed (possibly
+// truncated) name are simply never reached.
+func highlightName(s string, base, match lipgloss.Style, matched []int) string {
+	set := make(map[int]bool, len(matched))
+	for _, i := range matched {
+		set[i] = true
+	}
+	var b strings.Builder
+	for bytePos, r := range s {
+		if set[bytePos] {
+			b.WriteString(match.Render(string(r)))
+		} else {
+			b.WriteString(base.Render(string(r)))
+		}
+	}
+	return b.String()
 }
 
 // helpBinding is a key-description pair for the help bar.
