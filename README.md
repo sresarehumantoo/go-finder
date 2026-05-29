@@ -7,6 +7,32 @@
 
 A cross-platform, terminal-based file and folder picker for Go. Works consistently across Windows, macOS, Linux, BSD, WSL, and Git Bash with zero OS-specific dependencies.
 
+```go
+path, err := finder.PickFile()   // one import, one line
+```
+
+Most Go terminal pickers are *components* you wire into your own Bubble Tea
+update/view loop. **go-finder is the batteries-included alternative**: a single
+call that returns the selected path — with fuzzy search, multi-select, a preview
+pane, and interactive create/delete built in — yet it still embeds as a Bubble
+Tea sub-model when you want full control.
+
+## Why go-finder?
+
+| | go-finder | [bubbles/filepicker](https://github.com/charmbracelet/bubbles) | [huh](https://github.com/charmbracelet/huh) file field | [go-fuzzyfinder](https://github.com/ktr0731/go-fuzzyfinder) |
+|---|:---:|:---:|:---:|:---:|
+| One-line standalone API | ✅ | ❌ | ❌ | ✅ |
+| Embeddable Bubble Tea sub-model | ✅ | ✅ | ➖ form field | ❌ |
+| Directory tree navigation | ✅ | ✅ | ✅ | ❌ list only |
+| Fuzzy search + highlight | ✅ | ❌ | ❌ | ✅ |
+| Multi-select | ✅ | ❌ | ❌ | ✅ |
+| File-or-folder (`ModeAny`) | ✅ | ➖ | ❌ | ❌ |
+| Interactive create / delete | ✅ | ❌ | ❌ | ❌ |
+| Preview pane | ✅ | ❌ | ❌ | ✅ |
+| Custom `io/fs.FS` backend | ✅ | ❌ | ❌ | ➖ |
+
+See [`docs/POSITIONING.md`](docs/POSITIONING.md) for the full landscape analysis.
+
 ## Features
 
 - **Four picker modes**: single file, single folder, any (file or folder), and multi-select

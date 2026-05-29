@@ -117,6 +117,36 @@ All four agreed priorities, sequenced by leverage and dependency order.
 - Consider polish items (icons, modtime column, git-status tinting) as fast
   follows once the four phases land.
 
+## awesome-go submission (ready to file)
+
+Submit via a PR to [avelino/awesome-go](https://github.com/avelino/awesome-go).
+
+**Category:** *Command Line → Advanced Console UIs* (alongside `bubbletea`,
+`bubbles`, `go-fuzzyfinder`). Insert alphabetically.
+
+**Entry line** (their linter wants a capitalized description ending in a period,
+roughly 30–80 chars):
+
+```markdown
+- [go-finder](https://github.com/SREsAreHumanToo/go-finder) - Cross-platform terminal file/folder picker with fuzzy search, multi-select, and a preview pane.
+```
+
+**Their contribution checklist — current status:**
+
+- [x] Has a `pkg.go.dev` reference (badge + `doc.go` + runnable examples)
+- [x] Has tests (`go test ./...`) and CI (GitHub Actions)
+- [x] Go Report Card grade A (badge present)
+- [x] Code coverage reporting (Codecov badge)
+- [x] README with a clear English description
+- [x] LICENSE present (MIT)
+- [ ] Repo age / stars: awesome-go expects a project that isn't brand-new and
+      has some traction — file the PR once the repo has a tagged release and a
+      little history.
+- [ ] Add go-finder to the awesome-go PR description's required coverage/age note.
+
+**Blocker to clear first:** tag a release on `main` (see [release flow](#)) so the
+submission points at a stable, versioned module.
+
 ## Sources
 
 - [bubbles/filepicker (pkg.go.dev)](https://pkg.go.dev/github.com/charmbracelet/bubbles/filepicker)
