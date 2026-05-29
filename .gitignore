@@ -8,6 +8,7 @@ dist/
 /multi
 /interactive
 /custom
+/preview
 /embedded
 
 # Go

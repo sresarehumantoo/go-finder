@@ -11,6 +11,7 @@
 //	go run ./examples/basic -hidden                  # Show hidden files
 //	go run ./examples/basic -interactive             # Enable create/delete actions
 //	go run ./examples/basic -expand -dir ~/symlink   # Resolve symlinks to real paths
+//	go run ./examples/basic -preview                 # Show a preview pane
 package main
 
 import (

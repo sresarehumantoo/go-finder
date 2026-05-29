@@ -230,6 +230,9 @@ go run ./examples/interactive
 # Custom keybindings and styles
 go run ./examples/custom
 
+# Preview pane (built-in or custom)
+go run ./examples/preview
+
 # Embedded as a Bubble Tea sub-model
 go run ./examples/embedded
 ```
