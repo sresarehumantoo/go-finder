@@ -1,0 +1,14 @@
+# Codecov configuration.
+# Exclude the example programs from coverage: they are runnable demos with no
+# tests, so counting their statements understates the library's real coverage.
+ignore:
+  - "examples/**"
+
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
