@@ -2,6 +2,15 @@
 bin/
 dist/
 
+# Compiled example binaries (built into repo root by `go build ./examples/<name>`)
+/basic
+/folder
+/multi
+/interactive
+/custom
+/preview
+/embedded
+
 # Go
 *.exe
 *.exe~

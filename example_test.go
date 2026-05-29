@@ -2,6 +2,7 @@ package finder_test
 
 import (
 	"fmt"
+	"testing/fstest"
 
 	finder "github.com/SREsAreHumanToo/go-finder"
 	"github.com/charmbracelet/bubbles/key"
@@ -54,6 +55,68 @@ func ExampleWithKeyMap() {
 		key.WithHelp("x", "exit"),
 	)
 	_, _ = finder.PickFile(finder.WithKeyMap(km))
+}
+
+// Browse an in-memory filesystem instead of the host OS. Any io/fs.FS works,
+// including embed.FS and fstest.MapFS. Custom filesystems are read-only, so
+// interactive create/delete is disabled for them.
+func ExampleWithFS() {
+	mem := fstest.MapFS{
+		"docs/readme.md": {Data: []byte("# hello")},
+		"main.go":        {Data: []byte("package main")},
+	}
+	path, err := finder.PickFile(finder.WithFS(mem))
+	if err != nil {
+		return
+	}
+	fmt.Println("selected:", path)
+}
+
+// Embed the picker as a sub-model in your own Bubble Tea program. New returns a
+// model in embedded mode: forward messages to its Update, render with View, and
+// watch for finder.DoneMsg to read the result. The picker never quits your
+// program itself.
+func ExampleNew() {
+	picker := finder.New(
+		finder.WithMode(finder.ModeFile),
+		finder.WithTitle("Pick a file"),
+	)
+
+	// In your parent model's Update, forward messages and handle completion:
+	//
+	//	func (m parent) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	//		if done, ok := msg.(finder.DoneMsg); ok {
+	//			if done.State == finder.StateSelected {
+	//				m.result = done.Paths
+	//			}
+	//			return m, nil
+	//		}
+	//		updated, cmd := m.picker.Update(msg)
+	//		m.picker = updated.(finder.Model)
+	//		return m, cmd
+	//	}
+	_ = picker.Init()
+}
+
+// Show a preview pane beside the file list. The pane previews the highlighted
+// entry (file head, directory listing, or metadata) and is hidden automatically
+// on narrow terminals.
+func ExampleWithPreview() {
+	path, err := finder.PickFile(finder.WithPreview(true))
+	if err != nil {
+		return
+	}
+	fmt.Println("selected:", path)
+}
+
+// Supply a custom preview renderer. The function receives the highlighted entry
+// and the pane dimensions, and returns the text to display.
+func ExampleWithPreviewFunc() {
+	_, _ = finder.PickFile(finder.WithPreviewFunc(
+		func(e finder.FileEntry, width, height int) string {
+			return fmt.Sprintf("%s\n%s", e.Name, finder.FormatSize(e.Size))
+		},
+	))
 }
 
 // Override visual styles for directory entries.

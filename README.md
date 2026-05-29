@@ -7,14 +7,43 @@
 
 A cross-platform, terminal-based file and folder picker for Go. Works consistently across Windows, macOS, Linux, BSD, WSL, and Git Bash with zero OS-specific dependencies.
 
+```go
+path, err := finder.PickFile()   // one import, one line
+```
+
+Most Go terminal pickers are *components* you wire into your own Bubble Tea
+update/view loop. **go-finder is the batteries-included alternative**: a single
+call that returns the selected path — with fuzzy search, multi-select, a preview
+pane, and interactive create/delete built in — yet it still embeds as a Bubble
+Tea sub-model when you want full control.
+
+## Why go-finder?
+
+| | go-finder | [bubbles/filepicker](https://github.com/charmbracelet/bubbles) | [huh](https://github.com/charmbracelet/huh) file field | [go-fuzzyfinder](https://github.com/ktr0731/go-fuzzyfinder) |
+|---|:---:|:---:|:---:|:---:|
+| One-line standalone API | ✅ | ❌ | ❌ | ✅ |
+| Embeddable Bubble Tea sub-model | ✅ | ✅ | ➖ form field | ❌ |
+| Directory tree navigation | ✅ | ✅ | ✅ | ❌ list only |
+| Fuzzy search + highlight | ✅ | ❌ | ❌ | ✅ |
+| Multi-select | ✅ | ❌ | ❌ | ✅ |
+| File-or-folder (`ModeAny`) | ✅ | ➖ | ❌ | ❌ |
+| Interactive create / delete | ✅ | ❌ | ❌ | ❌ |
+| Preview pane | ✅ | ❌ | ❌ | ✅ |
+| Custom `io/fs.FS` backend | ✅ | ❌ | ❌ | ➖ |
+
+See [`docs/POSITIONING.md`](docs/POSITIONING.md) for the full landscape analysis.
+
 ## Features
 
 - **Four picker modes**: single file, single folder, any (file or folder), and multi-select
-- **Live search filtering**: press `/` to filter entries in real time
+- **Fuzzy search filtering**: press `/` to filter entries in real time, ranked best-match-first with matched characters highlighted (opt out with `WithFuzzySearch(false)` for plain substring matching)
 - **Interactive mode**: create files/folders and delete entries without leaving the picker
 - **Glob-based file filtering** (`*.go`, `*.txt`, etc.)
 - **Hidden file support**: toggle at runtime, or force-show with distinct dim styling
 - **Symlink expansion**: optionally resolve symlinks to real paths
+- **Pluggable filesystem**: browse any `io/fs.FS` (e.g. `embed.FS`, `fstest.MapFS`) via `WithFS` — defaults to the host OS
+- **Preview pane**: optional side pane (`WithPreview`) showing a file's head, a directory's listing, or metadata; customizable via `WithPreviewFunc`
+- **Standalone or embeddable**: one-line `PickFile()` etc., or embed the picker as a Bubble Tea sub-model with `New` (reports completion via `DoneMsg`)
 - **Smart truncation**: long paths and filenames are truncated with `…` to fit the terminal
 - **Fully customizable**: override any keybinding or visual style
 - **Vim-style navigation** (`h/j/k/l`) plus standard arrow keys
@@ -98,6 +127,37 @@ path, err := finder.PickFile(
 )
 ```
 
+### Embed in your own Bubble Tea app
+
+The `Pick*` functions run a standalone program. To embed the picker as a
+sub-model in an existing Bubble Tea program, use `New`, which returns a model in
+embedded mode: it never quits your program and reports completion via
+`finder.DoneMsg`.
+
+```go
+type parent struct{ picker finder.Model }
+
+func (m parent) Init() tea.Cmd { return m.picker.Init() }
+
+func (m parent) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+    if done, ok := msg.(finder.DoneMsg); ok {
+        if done.State == finder.StateSelected {
+            // use done.Paths
+        }
+        return m, tea.Quit // or switch to another view
+    }
+    updated, cmd := m.picker.Update(msg)
+    m.picker = updated.(finder.Model)
+    return m, cmd
+}
+
+func (m parent) View() string { return m.picker.View() }
+
+// finder.New(finder.WithMode(finder.ModeFile), finder.WithPreview(true))
+```
+
+See [`examples/embedded`](examples/embedded) for a complete program.
+
 ## Keybindings
 
 ### Navigation
@@ -137,7 +197,7 @@ path, err := finder.PickFile(
 
 | Key | Action |
 |---|---|
-| Type characters | Filter entries live |
+| Type characters | Filter entries live (fuzzy, ranked, matches highlighted) |
 | `backspace` | Remove last character (widens results) |
 | `enter` | Accept filtered results |
 | `esc` | Cancel search, restore full list |
@@ -169,6 +229,12 @@ go run ./examples/interactive
 
 # Custom keybindings and styles
 go run ./examples/custom
+
+# Preview pane (built-in or custom)
+go run ./examples/preview
+
+# Embedded as a Bubble Tea sub-model
+go run ./examples/embedded
 ```
 
 The basic example supports flags for all options:

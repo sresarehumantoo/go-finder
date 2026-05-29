@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sort"
 	"strings"
 )
 
@@ -28,46 +27,7 @@ func ReadDir(dir string, showHidden bool, filters []string) ([]FileEntry, error)
 	if err != nil {
 		return nil, err
 	}
-
-	var result []FileEntry
-	for _, e := range entries {
-		name := e.Name()
-
-		if !showHidden && isHidden(name) {
-			continue
-		}
-
-		info, err := e.Info()
-		if err != nil {
-			continue
-		}
-
-		entry := FileEntry{
-			Name:     name,
-			Path:     filepath.Join(dir, name),
-			IsDir:    e.IsDir(),
-			IsHidden: isHidden(name),
-			Size:     info.Size(),
-			Mode:     info.Mode(),
-		}
-
-		if !entry.IsDir && len(filters) > 0 {
-			if !matchesAnyFilter(name, filters) {
-				continue
-			}
-		}
-
-		result = append(result, entry)
-	}
-
-	sort.Slice(result, func(i, j int) bool {
-		if result[i].IsDir != result[j].IsDir {
-			return result[i].IsDir
-		}
-		return strings.ToLower(result[i].Name) < strings.ToLower(result[j].Name)
-	})
-
-	return result, nil
+	return buildEntries(osFS{}, dir, entries, showHidden, filters), nil
 }
 
 // ParentDir returns the parent directory of the given path.

@@ -7,14 +7,38 @@ import (
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/sahilm/fuzzy"
 	"golang.org/x/term"
 )
+
+// State describes where the picker is in its lifecycle. It lets a parent
+// program that embeds the picker (see New) detect when the user has finished.
+type State int
+
+const (
+	// StateBrowsing means the user is still navigating and has not finished.
+	StateBrowsing State = iota
+	// StateSelected means the user confirmed a selection; read it with
+	// SelectedPath or SelectedPaths.
+	StateSelected
+	// StateCancelled means the user dismissed the picker without selecting.
+	StateCancelled
+)
+
+// DoneMsg is emitted (as a tea.Cmd result) when an embedded picker finishes,
+// so a parent program can react in its own Update. It is not sent in the
+// standalone Pick* API, which ends its own program instead.
+type DoneMsg struct {
+	State State
+	Paths []string
+}
 
 // Model is the bubbletea model for the file picker.
 type Model struct {
 	options  Options
 	keys     KeyMap
 	styles   Styles
+	fsys     FileSystem
 	entries  []FileEntry
 	cursor   int
 	offset   int
@@ -22,11 +46,19 @@ type Model struct {
 	dir      string
 	err      error
 	quitting bool
-	chosen   bool
+	state    State
+
+	// standalone is true when the model owns its tea.Program (the Pick*
+	// one-liner API) and may therefore emit tea.Quit. When embedded in a
+	// parent program it is false: completion is signalled via DoneMsg instead.
+	standalone bool
 
 	searching  bool
 	searchTerm string
 	allEntries []FileEntry
+	// matchIdx maps an entry path to the byte offsets of its fuzzy-matched
+	// characters, used to highlight matches while searching.
+	matchIdx map[string][]int
 
 	inputMode inputModeType
 	inputText string
@@ -34,6 +66,9 @@ type Model struct {
 	returnTo     string
 	statusMsg    string
 	hiddenForced bool
+
+	previewPath  string
+	previewLines []string
 
 	width  int
 	height int
@@ -49,11 +84,37 @@ func NewModel(opts Options) Model {
 		h = 24
 	}
 
-	startDir := opts.StartDir
-	if opts.ExpandSymlinks {
-		startDir = ResolvePath(startDir)
-		opts.StartDir = startDir
+	var fsys FileSystem = osFS{}
+	if opts.FS != nil {
+		fsys = opts.FS
 	}
+	_, isOS := fsys.(osFS)
+
+	startDir := opts.StartDir
+	if isOS {
+		if startDir == "" {
+			startDir = fsys.Root()
+		}
+		startDir = expandHome(startDir)
+		if abs, err := filepath.Abs(startDir); err == nil {
+			startDir = abs
+		}
+		if opts.ExpandSymlinks {
+			startDir = ResolvePath(startDir)
+		}
+	} else {
+		// Symlink expansion is OS-specific and meaningless for a custom FS.
+		opts.ExpandSymlinks = false
+		// DefaultOptions seeds StartDir with an absolute OS path, which has no
+		// meaning here; fall back to the filesystem root unless the caller gave
+		// a relative in-FS path.
+		if startDir == "" || filepath.IsAbs(startDir) {
+			startDir = fsys.Root()
+		} else {
+			startDir = cleanFSPath(startDir)
+		}
+	}
+	opts.StartDir = startDir
 
 	keys := DefaultKeyMap()
 	if opts.KeyMap != nil {
@@ -68,9 +129,11 @@ func NewModel(opts Options) Model {
 		options:      opts,
 		keys:         keys,
 		styles:       styles,
+		fsys:         fsys,
 		selected:     make(map[string]struct{}),
 		dir:          startDir,
 		hiddenForced: opts.ShowHidden,
+		standalone:   !opts.Embedded,
 		width:        w,
 		height:       h,
 	}
@@ -83,10 +146,35 @@ func (m Model) Init() tea.Cmd {
 	return m.readDir()
 }
 
+// State returns the picker's lifecycle state. Embedded parents use it (or watch
+// for DoneMsg) to detect when the user has finished.
+func (m Model) State() State {
+	return m.state
+}
+
+// Done reports whether the user has finished with the picker (either selected
+// or cancelled).
+func (m Model) Done() bool {
+	return m.state != StateBrowsing
+}
+
+// finish marks the picker as finished. In standalone mode (the Pick* API) it
+// ends the program with tea.Quit; when embedded it emits a DoneMsg so the
+// parent program can react.
+func (m Model) finish(s State) (tea.Model, tea.Cmd) {
+	m.state = s
+	if m.standalone {
+		m.quitting = true
+		return m, tea.Quit
+	}
+	paths := m.SelectedPaths()
+	return m, func() tea.Msg { return DoneMsg{State: s, Paths: paths} }
+}
+
 // SelectedPath returns the single selected path after the picker closes.
 // Returns empty string if nothing was selected.
 func (m Model) SelectedPath() string {
-	if !m.chosen {
+	if m.state != StateSelected {
 		return ""
 	}
 	if m.options.Mode == ModeMultiple {
@@ -104,7 +192,7 @@ func (m Model) SelectedPath() string {
 // SelectedPaths returns all selected paths (for multi-select mode).
 // Paths are returned in sorted order for deterministic results.
 func (m Model) SelectedPaths() []string {
-	if !m.chosen {
+	if m.state != StateSelected {
 		return nil
 	}
 	if m.options.Mode == ModeMultiple {
@@ -135,11 +223,16 @@ type dirReadMsg struct {
 
 func (m Model) readDir() tea.Cmd {
 	dir := m.dir
+	fsys := m.fsys
 	showHidden := m.options.ShowHidden
 	filters := m.options.Filters
 	return func() tea.Msg {
-		entries, err := ReadDir(dir, showHidden, filters)
-		return dirReadMsg{entries: entries, dir: dir, err: err}
+		raw, err := fsys.ReadDir(dir)
+		if err != nil {
+			return dirReadMsg{dir: dir, err: err}
+		}
+		entries := buildEntries(fsys, dir, raw, showHidden, filters)
+		return dirReadMsg{entries: entries, dir: dir}
 	}
 }
 
@@ -149,6 +242,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		m.refreshPreview()
 		return m, nil
 
 	case dirReadMsg:
@@ -176,13 +270,33 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.returnTo = ""
 		}
+		m.refreshPreview()
 		return m, nil
 
 	case tea.KeyMsg:
-		return m.handleKey(msg)
+		prev := m.currentPath()
+		updated, cmd := m.handleKey(msg)
+		nm, ok := updated.(Model)
+		if !ok {
+			return updated, cmd
+		}
+		// Refresh the preview only when the selection changed and no directory
+		// read is pending (a pending read refreshes via dirReadMsg instead).
+		if cmd == nil && nm.currentPath() != prev {
+			nm.refreshPreview()
+		}
+		return nm, cmd
 	}
 
 	return m, nil
+}
+
+// currentPath returns the path of the highlighted entry, or "" if none.
+func (m Model) currentPath() string {
+	if m.cursor >= 0 && m.cursor < len(m.entries) {
+		return m.entries[m.cursor].Path
+	}
+	return ""
 }
 
 func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -197,8 +311,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	switch {
 	case key.Matches(msg, m.keys.Cancel):
-		m.quitting = true
-		return m, tea.Quit
+		return m.finish(StateCancelled)
 
 	case key.Matches(msg, m.keys.Up):
 		m.cursorUp()
@@ -231,9 +344,9 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		copy(m.allEntries, m.entries)
 
 	case key.Matches(msg, m.keys.Back):
-		parent := m.resolve(ParentDir(m.dir))
+		parent := m.resolve(m.fsys.Parent(m.dir))
 		if parent != m.dir {
-			m.returnTo = filepath.Base(m.dir)
+			m.returnTo = m.fsys.Base(m.dir)
 			m.dir = parent
 			return m, m.readDir()
 		}
@@ -246,15 +359,27 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleSelectDir()
 
 	case key.Matches(msg, m.keys.NewFile) && m.options.Interactive && m.options.Mode != ModeFolder:
+		if !m.writable() {
+			m.statusMsg = readOnlyMsg
+			return m, nil
+		}
 		m.inputMode = inputNewFile
 		m.inputText = ""
 
 	case key.Matches(msg, m.keys.NewFolder) && m.options.Interactive,
 		key.Matches(msg, m.keys.NewFile) && m.options.Interactive && m.options.Mode == ModeFolder:
+		if !m.writable() {
+			m.statusMsg = readOnlyMsg
+			return m, nil
+		}
 		m.inputMode = inputNewFolder
 		m.inputText = ""
 
 	case key.Matches(msg, m.keys.Delete) && m.options.Interactive:
+		if !m.writable() {
+			m.statusMsg = readOnlyMsg
+			return m, nil
+		}
 		if len(m.entries) > 0 {
 			m.inputMode = inputConfirmDelete
 		}
@@ -283,14 +408,13 @@ func (m Model) handleNavigate() (tea.Model, tea.Cmd) {
 // handleSelectDir handles 's' — selects the current working directory.
 func (m Model) handleSelectDir() (tea.Model, tea.Cmd) {
 	if m.options.Mode == ModeFolder || m.options.Mode == ModeAny {
-		m.chosen = true
 		m.entries = []FileEntry{{
 			Name:  ".",
 			Path:  m.dir,
 			IsDir: true,
 		}}
 		m.cursor = 0
-		return m, tea.Quit
+		return m.finish(StateSelected)
 	}
 	return m, nil
 }
@@ -304,8 +428,7 @@ func (m Model) handleSelectionKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	switch {
 	case key.Matches(msg, m.keys.Toggle) && m.options.Mode == ModeAny:
-		m.chosen = true
-		return m, tea.Quit
+		return m.finish(StateSelected)
 
 	case key.Matches(msg, m.keys.Toggle) && m.options.Mode == ModeMultiple:
 		if _, ok := m.selected[entry.Path]; ok {
@@ -340,13 +463,11 @@ func (m Model) handleSelectionKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.dir = m.resolve(entry.Path)
 				return m, m.readDir()
 			}
-			m.chosen = true
-			return m, tea.Quit
+			return m.finish(StateSelected)
 
 		case ModeFolder:
 			if entry.IsDir {
-				m.chosen = true
-				return m, tea.Quit
+				return m.finish(StateSelected)
 			}
 
 		case ModeAny:
@@ -354,8 +475,7 @@ func (m Model) handleSelectionKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.dir = m.resolve(entry.Path)
 				return m, m.readDir()
 			}
-			m.chosen = true
-			return m, tea.Quit
+			return m.finish(StateSelected)
 
 		case ModeMultiple:
 			if entry.IsDir {
@@ -363,12 +483,10 @@ func (m Model) handleSelectionKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return m, m.readDir()
 			}
 			if len(m.selected) > 0 {
-				m.chosen = true
-				return m, tea.Quit
+				return m.finish(StateSelected)
 			}
 			m.selected[entry.Path] = struct{}{}
-			m.chosen = true
-			return m, tea.Quit
+			return m.finish(StateSelected)
 		}
 	}
 
@@ -441,6 +559,14 @@ func (m Model) handleCreateInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+		w, ok := m.fsys.(WritableFileSystem)
+		if !ok {
+			m.inputMode = inputNone
+			m.inputText = ""
+			m.statusMsg = readOnlyMsg
+			return m, nil
+		}
+
 		var err error
 		if m.inputMode == inputNewFile && strings.HasSuffix(name, "/") {
 			name = strings.TrimRight(name, "/")
@@ -449,11 +575,11 @@ func (m Model) handleCreateInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.inputText = ""
 				return m, nil
 			}
-			err = CreateDir(m.dir, name)
+			err = w.CreateDir(m.dir, name)
 		} else if m.inputMode == inputNewFile {
-			err = CreateFile(m.dir, name)
+			err = w.CreateFile(m.dir, name)
 		} else {
-			err = CreateDir(m.dir, name)
+			err = w.CreateDir(m.dir, name)
 		}
 
 		m.inputMode = inputNone
@@ -489,9 +615,14 @@ func (m Model) handleDeleteConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	m.inputMode = inputNone
 
 	if msg.Type == tea.KeyRunes && len(msg.Runes) > 0 && (msg.Runes[0] == 'y' || msg.Runes[0] == 'Y') {
+		w, ok := m.fsys.(WritableFileSystem)
+		if !ok {
+			m.statusMsg = readOnlyMsg
+			return m, nil
+		}
 		if m.cursor >= 0 && m.cursor < len(m.entries) {
 			entry := m.entries[m.cursor]
-			err := DeletePath(entry.Path)
+			err := w.Remove(entry.Path)
 			if err != nil {
 				m.statusMsg = "Error: " + err.Error()
 				return m, nil
@@ -508,13 +639,46 @@ func (m Model) handleDeleteConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 // filterEntries filters the visible entries based on the current search term.
+// With fuzzy search enabled (the default), matches are ranked best-match-first;
+// otherwise a case-insensitive substring match preserves the original order.
 func (m *Model) filterEntries() {
+	m.matchIdx = nil
 	if m.searchTerm == "" {
 		m.entries = m.allEntries
 		m.cursor = 0
 		m.offset = 0
 		return
 	}
+	if m.options.FuzzySearch {
+		m.filterFuzzy()
+	} else {
+		m.filterSubstring()
+	}
+	m.cursor = 0
+	m.offset = 0
+}
+
+// filterFuzzy ranks entries by fuzzy match score against the search term and
+// records the matched character offsets for highlighting.
+func (m *Model) filterFuzzy() {
+	names := make([]string, len(m.allEntries))
+	for i, e := range m.allEntries {
+		names[i] = e.Name
+	}
+	matches := fuzzy.Find(m.searchTerm, names)
+	filtered := make([]FileEntry, 0, len(matches))
+	m.matchIdx = make(map[string][]int, len(matches))
+	for _, mt := range matches {
+		e := m.allEntries[mt.Index]
+		filtered = append(filtered, e)
+		m.matchIdx[e.Path] = mt.MatchedIndexes
+	}
+	m.entries = filtered
+}
+
+// filterSubstring keeps entries whose name contains the search term,
+// preserving the original ordering.
+func (m *Model) filterSubstring() {
 	term := strings.ToLower(m.searchTerm)
 	var filtered []FileEntry
 	for _, e := range m.allEntries {
@@ -523,8 +687,6 @@ func (m *Model) filterEntries() {
 		}
 	}
 	m.entries = filtered
-	m.cursor = 0
-	m.offset = 0
 }
 
 func (m *Model) cursorUp() {
@@ -578,8 +740,25 @@ func (m *Model) fixOffset() {
 }
 
 func (m Model) visibleRows() int {
-	reserved := 8
-	h := m.height - reserved
+	// Account for the chrome around the file list so the view never exceeds the
+	// terminal height (which would make it scroll/jump on every repaint).
+	// Base chrome: title (2 lines) + path (2) + status counter (1), plus one
+	// blank bottom row so a full screen does not make the terminal scroll. Some
+	// elements are conditional and the help bar wraps with width, so its height
+	// is measured rather than assumed.
+	chrome := 7
+	if m.options.Mode == ModeFolder || m.options.Mode == ModeAny {
+		chrome++ // "press s to select" hint
+	}
+	if m.searching {
+		chrome++ // search prompt line
+	}
+	if m.inputMode != inputNone {
+		chrome++ // new file/folder or delete-confirm prompt line
+	}
+	chrome += len(m.helpLines())
+
+	h := m.height - chrome
 	if m.options.Height > 0 && m.options.Height < h {
 		h = m.options.Height
 	}
@@ -587,6 +766,16 @@ func (m Model) visibleRows() int {
 		h = 3
 	}
 	return h
+}
+
+// readOnlyMsg is shown when an interactive action is attempted on a
+// filesystem that does not support writes (e.g. a custom io/fs.FS).
+const readOnlyMsg = "Filesystem is read-only"
+
+// writable reports whether the active filesystem supports create/delete.
+func (m Model) writable() bool {
+	_, ok := m.fsys.(WritableFileSystem)
+	return ok
 }
 
 // resolve applies symlink resolution if ExpandSymlinks is enabled.

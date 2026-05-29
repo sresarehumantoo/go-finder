@@ -1,6 +1,7 @@
 package finder
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 )
@@ -57,6 +58,28 @@ type Options struct {
 	// navigating back from a symlinked directory goes to the real parent
 	// rather than the symlink's parent.
 	ExpandSymlinks bool
+	// FuzzySearch enables scored fuzzy matching for the search filter,
+	// ranking results best-match-first. When false, search uses a plain
+	// case-insensitive substring match that preserves the original order.
+	FuzzySearch bool
+	// Embedded marks the picker as a sub-model of a larger Bubble Tea program.
+	// When set, the picker never emits tea.Quit; instead it signals completion
+	// via DoneMsg and its State() method, leaving control of the program to the
+	// parent. The Pick* one-liner API leaves this false. See New.
+	Embedded bool
+	// Preview enables a right-hand pane that previews the highlighted entry
+	// (file head, directory listing, or metadata). Off by default.
+	Preview bool
+	// PreviewFunc customizes how the highlighted entry is previewed. When nil,
+	// a built-in preview is used. It receives the entry and the pane's
+	// width/height (in cells) and returns the preview text; the result is
+	// clipped to fit the pane.
+	PreviewFunc PreviewFunc
+	// FS is the filesystem backend the picker reads from. Nil means the
+	// host operating system. Set it via WithFS to browse a custom io/fs.FS
+	// (e.g. an embed.FS or fstest.MapFS); such filesystems are read-only,
+	// so interactive create/delete is disabled for them.
+	FS FileSystem
 	// KeyMap overrides the default keybindings. Nil means use defaults.
 	KeyMap *KeyMap
 	// Styles overrides the default visual styles. Nil means use defaults.
@@ -65,6 +88,12 @@ type Options struct {
 
 // Option is a functional option for configuring the picker.
 type Option func(*Options)
+
+// PreviewFunc renders a preview of the highlighted entry. It is given the
+// entry and the preview pane's width and height in terminal cells, and returns
+// the preview text (which may span multiple lines). The returned text is
+// clipped to the pane's dimensions.
+type PreviewFunc func(e FileEntry, width, height int) string
 
 // DefaultOptions returns a new Options struct with sensible defaults.
 func DefaultOptions() Options {
@@ -75,24 +104,23 @@ func DefaultOptions() Options {
 	dir, _ = filepath.Abs(dir)
 
 	return Options{
-		StartDir:   dir,
-		Filters:    nil,
-		ShowHidden: false,
-		Mode:       ModeFile,
-		Title:      "Select a file",
-		Height:     0,
+		StartDir:    dir,
+		Filters:     nil,
+		ShowHidden:  false,
+		Mode:        ModeFile,
+		Title:       "Select a file",
+		Height:      0,
+		FuzzySearch: true,
 	}
 }
 
-// WithStartDir sets the initial directory for the picker.
+// WithStartDir sets the initial directory for the picker. For the default OS
+// backend the path is resolved to an absolute path when the picker starts; for
+// a custom filesystem (see WithFS) it is interpreted as a relative,
+// slash-separated path within that filesystem.
 func WithStartDir(dir string) Option {
 	return func(o *Options) {
-		abs, err := filepath.Abs(dir)
-		if err == nil {
-			o.StartDir = abs
-		} else {
-			o.StartDir = dir
-		}
+		o.StartDir = dir
 	}
 }
 
@@ -146,6 +174,55 @@ func WithInteractive(enabled bool) Option {
 func WithExpandSymlinks(enabled bool) Option {
 	return func(o *Options) {
 		o.ExpandSymlinks = enabled
+	}
+}
+
+// WithEmbedded marks the picker for embedding in a larger Bubble Tea program,
+// so it signals completion via DoneMsg / State() instead of quitting. New sets
+// this automatically; use it directly only with NewModel.
+func WithEmbedded(enabled bool) Option {
+	return func(o *Options) {
+		o.Embedded = enabled
+	}
+}
+
+// WithPreview enables (or disables) the preview pane shown beside the file
+// list. The pane is hidden automatically when the terminal is too narrow.
+func WithPreview(enabled bool) Option {
+	return func(o *Options) {
+		o.Preview = enabled
+	}
+}
+
+// WithPreviewFunc sets a custom preview renderer and enables the preview pane.
+// Pass nil to fall back to the built-in preview while keeping the pane enabled.
+func WithPreviewFunc(fn PreviewFunc) Option {
+	return func(o *Options) {
+		o.PreviewFunc = fn
+		o.Preview = true
+	}
+}
+
+// WithFS sets a custom filesystem backend to browse instead of the host OS.
+// The picker navigates the given io/fs.FS in slash-separated path space,
+// starting at its root ("."). Because io/fs is read-only, interactive
+// create/delete is unavailable on a custom filesystem.
+//
+// To start in a subdirectory, combine with WithStartDir using a relative,
+// slash-separated path (e.g. WithStartDir("docs/api")).
+func WithFS(fsys fs.FS) Option {
+	return func(o *Options) {
+		o.FS = fsAdapter{fsys: fsys, label: "/"}
+	}
+}
+
+// WithFuzzySearch toggles scored fuzzy matching for the search filter.
+// When enabled (the default), results are ranked best-match-first. When
+// disabled, search falls back to a case-insensitive substring match that
+// preserves the original directory ordering.
+func WithFuzzySearch(enabled bool) Option {
+	return func(o *Options) {
+		o.FuzzySearch = enabled
 	}
 }
 

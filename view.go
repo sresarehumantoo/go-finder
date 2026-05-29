@@ -3,6 +3,8 @@ package finder
 import (
 	"fmt"
 	"strings"
+
+	"github.com/charmbracelet/lipgloss"
 )
 
 // View implements tea.Model. It renders the full picker UI.
@@ -13,10 +15,10 @@ func (m Model) View() string {
 
 	var b strings.Builder
 
-	b.WriteString(m.styles.Title.Render(m.options.Title))
+	b.WriteString(m.styles.Title.Render(truncate(m.options.Title, m.width)))
 	b.WriteString("\n")
 
-	displayDir := m.dir
+	displayDir := m.fsys.Display(m.dir)
 	maxPath := m.width - 4
 	if maxPath > 0 && len(displayDir) > maxPath {
 		displayDir = "…" + displayDir[len(displayDir)-maxPath+1:]
@@ -32,29 +34,38 @@ func (m Model) View() string {
 	if m.err != nil {
 		b.WriteString(m.styles.Cursor.Render(fmt.Sprintf("Error: %v", m.err)))
 		b.WriteString("\n")
-		return b.String()
+		return m.clampView(b.String())
 	}
 
-	if len(m.entries) == 0 {
-		b.WriteString(m.styles.Help.Render("  (empty directory)"))
-		b.WriteString("\n")
-	}
-
+	listW, prevW, prevH := m.layout()
 	visible := m.visibleRows()
+
+	var listLines []string
+	if len(m.entries) == 0 {
+		listLines = append(listLines, m.styles.Help.Render("  (empty directory)"))
+	}
+
 	end := m.offset + visible
 	if end > len(m.entries) {
 		end = len(m.entries)
 	}
-
 	for i := m.offset; i < end; i++ {
 		entry := m.entries[i]
 		isCursor := i == m.cursor
 		_, isSelected := m.selected[entry.Path]
-
-		line := m.renderEntry(entry, isCursor, isSelected)
-		b.WriteString(line)
-		b.WriteString("\n")
+		var matched []int
+		if m.searching {
+			matched = m.matchIdx[entry.Path]
+		}
+		listLines = append(listLines, m.renderEntry(entry, isCursor, isSelected, listW, matched))
 	}
+
+	if prevW > 0 && prevH > 0 {
+		b.WriteString(m.renderSplit(listLines, listW, prevW, prevH))
+	} else {
+		b.WriteString(strings.Join(listLines, "\n"))
+	}
+	b.WriteString("\n")
 
 	var statusParts []string
 	if len(m.entries) > visible {
@@ -106,10 +117,59 @@ func (m Model) View() string {
 
 	b.WriteString(m.renderHelp())
 
+	return m.clampView(b.String())
+}
+
+// clampView hard-limits the rendered view to the terminal dimensions: each line
+// is truncated to the width and the whole frame to the height. This guarantees
+// no line wraps and the frame never exceeds the screen — which would otherwise
+// make the terminal scroll and corrupt the display on every repaint.
+func (m Model) clampView(s string) string {
+	if m.width <= 0 || m.height <= 0 {
+		return s
+	}
+	return lipgloss.NewStyle().MaxWidth(m.width).MaxHeight(m.height).Render(s)
+}
+
+// truncate shortens s to fit width display cells, appending an ellipsis when
+// shortened. It is width-aware (counts display cells, not bytes) so it handles
+// multibyte runes such as arrows in titles.
+func truncate(s string, width int) string {
+	if width <= 0 {
+		return s
+	}
+	if lipgloss.Width(s) <= width {
+		return s
+	}
+	if width == 1 {
+		return "…"
+	}
+	var b strings.Builder
+	used := 0
+	for _, r := range s {
+		rw := lipgloss.Width(string(r))
+		if used+rw > width-1 {
+			break
+		}
+		b.WriteRune(r)
+		used += rw
+	}
+	b.WriteString("…")
 	return b.String()
 }
 
-func (m Model) renderEntry(e FileEntry, isCursor, isSelected bool) string {
+// renderSplit lays the file list and the preview pane out side by side. Both
+// columns are pinned to prevH rows so the body's height stays constant as the
+// selection changes — otherwise the footer would jump as previews vary in
+// length.
+func (m Model) renderSplit(listLines []string, listW, prevW, prevH int) string {
+	left := lipgloss.NewStyle().Width(listW).Height(prevH).Render(strings.Join(listLines, "\n"))
+	content := m.styles.Preview.Render(strings.Join(m.previewLines, "\n"))
+	right := m.styles.PreviewBorder.Width(prevW).Height(prevH).Render(content)
+	return lipgloss.JoinHorizontal(lipgloss.Top, left, right)
+}
+
+func (m Model) renderEntry(e FileEntry, isCursor, isSelected bool, width int, matched []int) string {
 	var prefix string
 	if isCursor {
 		prefix = m.styles.Cursor.Render("> ")
@@ -130,7 +190,7 @@ func (m Model) renderEntry(e FileEntry, isCursor, isSelected bool) string {
 
 	sizeWidth := 10
 	overhead := 2 + markerWidth + 2 + sizeWidth
-	maxName := m.width - overhead
+	maxName := width - overhead
 	if maxName < 10 {
 		maxName = 10
 	}
@@ -143,23 +203,25 @@ func (m Model) renderEntry(e FileEntry, isCursor, isSelected bool) string {
 		displayName = displayName[:maxName-1] + "…"
 	}
 
+	var baseStyle lipgloss.Style
+	switch {
+	case isSelected:
+		baseStyle = m.styles.Selected
+	case e.IsDir && e.IsHidden:
+		baseStyle = m.styles.HiddenDir
+	case e.IsDir:
+		baseStyle = m.styles.Directory
+	case e.IsHidden:
+		baseStyle = m.styles.HiddenFile
+	default:
+		baseStyle = m.styles.File
+	}
+
 	var name string
-	if e.IsDir {
-		if isSelected {
-			name = m.styles.Selected.Render(displayName)
-		} else if e.IsHidden {
-			name = m.styles.HiddenDir.Render(displayName)
-		} else {
-			name = m.styles.Directory.Render(displayName)
-		}
+	if len(matched) > 0 && !isSelected {
+		name = highlightName(displayName, baseStyle, m.styles.Match, matched)
 	} else {
-		if isSelected {
-			name = m.styles.Selected.Render(displayName)
-		} else if e.IsHidden {
-			name = m.styles.HiddenFile.Render(displayName)
-		} else {
-			name = m.styles.File.Render(displayName)
-		}
+		name = baseStyle.Render(displayName)
 	}
 
 	var size string
@@ -172,6 +234,26 @@ func (m Model) renderEntry(e FileEntry, isCursor, isSelected bool) string {
 	return prefix + marker + name + "  " + size
 }
 
+// highlightName renders s with matched characters in the match style and the
+// rest in the base style. matched holds byte offsets into the original name (as
+// returned by the fuzzy matcher); offsets beyond the displayed (possibly
+// truncated) name are simply never reached.
+func highlightName(s string, base, match lipgloss.Style, matched []int) string {
+	set := make(map[int]bool, len(matched))
+	for _, i := range matched {
+		set[i] = true
+	}
+	var b strings.Builder
+	for bytePos, r := range s {
+		if set[bytePos] {
+			b.WriteString(match.Render(string(r)))
+		} else {
+			b.WriteString(base.Render(string(r)))
+		}
+	}
+	return b.String()
+}
+
 // helpBinding is a key-description pair for the help bar.
 type helpBinding struct {
 	key  string
@@ -179,6 +261,13 @@ type helpBinding struct {
 }
 
 func (m Model) renderHelp() string {
+	return strings.Join(m.helpLines(), "\n")
+}
+
+// helpLines builds the help bar, wrapped to the terminal width, returning one
+// string per line. visibleRows uses its length to size the file list so the
+// view never overflows the terminal when the help bar wraps.
+func (m Model) helpLines() []string {
 	var bindings []helpBinding
 
 	switch m.options.Mode {
@@ -282,5 +371,5 @@ func (m Model) renderHelp() string {
 		lines = append(lines, currentLine)
 	}
 
-	return strings.Join(lines, "\n")
+	return lines
 }

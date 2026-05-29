@@ -11,6 +11,7 @@
 //	go run ./examples/basic -hidden                  # Show hidden files
 //	go run ./examples/basic -interactive             # Enable create/delete actions
 //	go run ./examples/basic -expand -dir ~/symlink   # Resolve symlinks to real paths
+//	go run ./examples/basic -preview                 # Show a preview pane
 package main
 
 import (
@@ -29,6 +30,7 @@ func main() {
 	hidden := flag.Bool("hidden", false, "Show hidden files")
 	interactive := flag.Bool("interactive", false, "Enable create/delete actions (n: new file, N: new folder, d: delete)")
 	expand := flag.Bool("expand", false, "Resolve symlinks to real paths")
+	preview := flag.Bool("preview", false, "Show a preview pane beside the file list")
 	flag.Parse()
 
 	var opts []finder.Option
@@ -55,6 +57,10 @@ func main() {
 
 	if *expand {
 		opts = append(opts, finder.WithExpandSymlinks(true))
+	}
+
+	if *preview {
+		opts = append(opts, finder.WithPreview(true))
 	}
 
 	switch *mode {
