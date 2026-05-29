@@ -1,4 +1,4 @@
-module github.com/SREsAreHumanToo/go-finder
+module github.com/rummage-dev/rummage
 
 go 1.25.0
 

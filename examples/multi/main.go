@@ -1,4 +1,4 @@
-// Multi example shows how to use go-finder for multi-file selection.
+// Multi example shows how to use rummage for multi-file selection.
 // Selections persist across directory navigation.
 //
 // Usage:
@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"os"
 
-	finder "github.com/SREsAreHumanToo/go-finder"
+	finder "github.com/rummage-dev/rummage"
 )
 
 func main() {

@@ -1,11 +1,11 @@
-# go-finder
+# rummage
 
 > A **TUI file picker, file explorer, and fuzzy finder for Go!** Browse, search, and select files or folders from the terminal like the ultimate superuser you are.
 
-[![CI](https://github.com/SREsAreHumanToo/go-finder/actions/workflows/ci.yml/badge.svg)](https://github.com/SREsAreHumanToo/go-finder/actions/workflows/ci.yml)
-[![Go Reference](https://pkg.go.dev/badge/github.com/SREsAreHumanToo/go-finder.svg)](https://pkg.go.dev/github.com/SREsAreHumanToo/go-finder)
-[![Go Report Card](https://goreportcard.com/badge/github.com/SREsAreHumanToo/go-finder)](https://goreportcard.com/report/github.com/SREsAreHumanToo/go-finder)
-[![codecov](https://codecov.io/gh/SREsAreHumanToo/go-finder/graph/badge.svg)](https://codecov.io/gh/SREsAreHumanToo/go-finder)
+[![CI](https://github.com/rummage-dev/rummage/actions/workflows/ci.yml/badge.svg)](https://github.com/rummage-dev/rummage/actions/workflows/ci.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/rummage-dev/rummage.svg)](https://pkg.go.dev/github.com/rummage-dev/rummage)
+[![Go Report Card](https://goreportcard.com/badge/github.com/rummage-dev/rummage)](https://goreportcard.com/report/github.com/rummage-dev/rummage)
+[![codecov](https://codecov.io/gh/rummage-dev/rummage/graph/badge.svg)](https://codecov.io/gh/rummage-dev/rummage)
 
 A cross-platform, terminal-based (TUI) file and folder picker, explorer, and fuzzy finder for Go. Works consistently across Windows, macOS, Linux, BSD, WSL, and Git Bash with zero OS-specific dependencies.
 
@@ -14,14 +14,14 @@ path, err := finder.PickFile()   // one import, one line
 ```
 
 Most Go terminal pickers are *components* you wire into your own Bubble Tea
-update/view loop. **go-finder is the batteries-included alternative**: a single
+update/view loop. **rummage is the batteries-included alternative**: a single
 call that returns the selected path — with fuzzy search, multi-select, a preview
 pane, and interactive create/delete built in — yet it still embeds as a Bubble
 Tea sub-model when you want full control.
 
-## Why go-finder?
+## Why rummage?
 
-| | go-finder | [bubbles/filepicker](https://github.com/charmbracelet/bubbles) | [huh](https://github.com/charmbracelet/huh) file field | [go-fuzzyfinder](https://github.com/ktr0731/go-fuzzyfinder) |
+| | rummage | [bubbles/filepicker](https://github.com/charmbracelet/bubbles) | [huh](https://github.com/charmbracelet/huh) file field | [go-fuzzyfinder](https://github.com/ktr0731/go-fuzzyfinder) |
 |---|:---:|:---:|:---:|:---:|
 | One-line standalone API | ✅ | ❌ | ❌ | ✅ |
 | Embeddable Bubble Tea sub-model | ✅ | ✅ | ➖ form field | ❌ |
@@ -56,12 +56,8 @@ See [`docs/POSITIONING.md`](docs/POSITIONING.md) for the full landscape analysis
 ## Install
 
 ```bash
-go get github.com/SREsAreHumanToo/go-finder@latest
+go get github.com/rummage-dev/rummage@latest
 ```
-
-> The module path is case-sensitive: use `SREsAreHumanToo` exactly as shown.
-> Go's module proxy distinguishes capitalization, so `sresarehumantoo`
-> will fail with a "case mismatch" error.
 
 ## Quick Start
 
@@ -70,7 +66,7 @@ package main
 
 import (
     "fmt"
-    finder "github.com/SREsAreHumanToo/go-finder"
+    finder "github.com/rummage-dev/rummage"
 )
 
 func main() {

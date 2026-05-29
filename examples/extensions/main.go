@@ -17,7 +17,7 @@ import (
 	"fmt"
 	"os"
 
-	finder "github.com/SREsAreHumanToo/go-finder"
+	finder "github.com/rummage-dev/rummage"
 )
 
 func main() {

@@ -2,7 +2,7 @@
 
 # Output directory
 BIN_DIR := bin
-APP     := go-finder
+APP     := rummage
 
 # Build all examples for the current platform
 build:

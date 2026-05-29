@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-go-finder follows semantic versioning. Security fixes are made on the latest
+rummage follows semantic versioning. Security fixes are made on the latest
 minor release; older releases do not receive backports.
 
 | Version | Supported          |
@@ -14,7 +14,7 @@ minor release; older releases do not receive backports.
 
 Please **do not** open a public issue for security reports.
 
-Use [GitHub's private vulnerability reporting](https://github.com/SREsAreHumanToo/go-finder/security/advisories/new)
+Use [GitHub's private vulnerability reporting](https://github.com/rummage-dev/rummage/security/advisories/new)
 to file a report. This routes the disclosure privately to the maintainers and
 allows coordinated remediation before public disclosure.
 
@@ -22,7 +22,7 @@ Include in the report:
 
 - A description of the issue and the impact (what an attacker can do)
 - Steps to reproduce, or a minimal proof-of-concept
-- The version (`go list -m github.com/SREsAreHumanToo/go-finder`) and Go
+- The version (`go list -m github.com/rummage-dev/rummage`) and Go
   toolchain version (`go version`) you observed it on
 - Any suggested remediation, if you have one
 

@@ -1,4 +1,4 @@
-// Basic example demonstrates all go-finder picker modes with flag-based configuration.
+// Basic example demonstrates all rummage picker modes with flag-based configuration.
 //
 // Usage:
 //
@@ -20,7 +20,7 @@ import (
 	"os"
 	"strings"
 
-	finder "github.com/SREsAreHumanToo/go-finder"
+	finder "github.com/rummage-dev/rummage"
 )
 
 func main() {

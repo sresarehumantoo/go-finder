@@ -1,4 +1,4 @@
-// Interactive example shows how to use go-finder with file management
+// Interactive example shows how to use rummage with file management
 // actions enabled (create files/folders, delete entries).
 //
 // Usage:
@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"os"
 
-	finder "github.com/SREsAreHumanToo/go-finder"
+	finder "github.com/rummage-dev/rummage"
 )
 
 func main() {

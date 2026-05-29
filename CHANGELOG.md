@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.0] - 2026-05-28
 
-The biggest feature release yet: go-finder goes from a one-line picker to the
+The biggest feature release yet: rummage goes from a one-line picker to the
 batteries-included **and** embeddable terminal picker for Go, while staying fully
 backward-compatible. Existing `PickFile`/`PickFolder`/`PickAny`/`PickMultiple`
 code keeps working unchanged.
@@ -41,7 +41,7 @@ code keeps working unchanged.
 - New styles: `Styles.Preview`, `Styles.PreviewBorder`, `Styles.Match`.
 - New examples: `examples/preview` and `examples/embedded`; a `-preview` flag on
   `examples/basic`.
-- README "Why go-finder?" comparison table and `docs/POSITIONING.md`.
+- README "Why rummage?" comparison table and `docs/POSITIONING.md`.
 
 ### Fixed
 
@@ -53,7 +53,7 @@ code keeps working unchanged.
 
 ### Compatibility
 
-No breaking changes. Module path remains `github.com/SREsAreHumanToo/go-finder`.
+No breaking changes. Module path remains `github.com/rummage-dev/rummage`.
 Requires Go 1.25+.
 
 ## [0.1.2] - 2026-05-27
@@ -72,7 +72,7 @@ Requires Go 1.25+.
   create/delete; hidden-file toggle; symlink expansion; WSL path helpers; and
   fully customizable keybindings and styles.
 
-[0.2.0]: https://github.com/SREsAreHumanToo/go-finder/compare/v0.1.2...v0.2.0
-[0.1.2]: https://github.com/SREsAreHumanToo/go-finder/compare/v0.1.1...v0.1.2
-[0.1.1]: https://github.com/SREsAreHumanToo/go-finder/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/SREsAreHumanToo/go-finder/releases/tag/v0.1.0
+[0.2.0]: https://github.com/rummage-dev/rummage/compare/v0.1.2...v0.2.0
+[0.1.2]: https://github.com/rummage-dev/rummage/compare/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/rummage-dev/rummage/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/rummage-dev/rummage/releases/tag/v0.1.0

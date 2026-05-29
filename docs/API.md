@@ -3,7 +3,7 @@
 ## Import
 
 ```go
-import finder "github.com/SREsAreHumanToo/go-finder"
+import finder "github.com/rummage-dev/rummage"
 ```
 
 ## Public Functions

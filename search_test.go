@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	finder "github.com/SREsAreHumanToo/go-finder"
+	finder "github.com/rummage-dev/rummage"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
